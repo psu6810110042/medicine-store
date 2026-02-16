@@ -1,0 +1,9 @@
+{
+  "name": "Medicine-Store",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev-container",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "1000",
+  "updateRemoteUserUID": true
+}
