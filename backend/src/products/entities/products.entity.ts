@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Category } from '../../category/entities/category.entity';
 
 @Entity('products')
 export class Product {
@@ -8,8 +9,12 @@ export class Product {
   @Column({ length: 255 })
   name: string;
 
-  @Column({ length: 100 })
-  category: string;
+  @ManyToOne(() => Category, (category) => category.products)
+  @JoinColumn({ name: 'categoryId' })
+  category: Category;
+
+  @Column({ nullable: true })
+  categoryId: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;
