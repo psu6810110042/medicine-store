@@ -13,7 +13,7 @@ export class SessionSerializer extends PassportSerializer {
     user: User,
     done: (err: Error | null, payload: string) => void,
   ): void {
-    done(null, user.id); // Store only the user ID in the session
+    done(null, user.id);
   }
 
   async deserializeUser(
@@ -21,6 +21,6 @@ export class SessionSerializer extends PassportSerializer {
     done: (err: Error | null, payload: User | null) => void,
   ): Promise<void> {
     const user = await this.usersService.findById(userId);
-    done(null, user); // Retrieve the full user object from the database
+    done(null, user);
   }
 }

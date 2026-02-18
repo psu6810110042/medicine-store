@@ -15,6 +15,5 @@ export class Category {
     @OneToMany(() => Product, (product) => product.category)
     products: Product[];
 
-    // This property will be populated by query builder or loadRelationCountAndMap
     count?: number;
 }
