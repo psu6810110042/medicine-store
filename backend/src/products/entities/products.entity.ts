@@ -11,14 +11,12 @@ export class Product {
   @Column({ length: 100 })
   category: string;
 
-  // Using 'decimal' is best practice for money to prevent floating-point math errors
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
   @Column('text')
   description: string;
 
-  // Stores properties; could also be 'json' or 'jsonb' if using PostgreSQL
   @Column('text', { nullable: true })
   properties: string;
 
@@ -31,7 +29,6 @@ export class Product {
   @Column({ default: true })
   inStock: boolean;
 
-  // ยาควบคุม (Controlled Drug)
   @Column({ default: false })
   isControlled: boolean;
 
@@ -44,7 +41,6 @@ export class Product {
   @Column({ nullable: true })
   batchNumber: string;
 
-  // Using 'date' allows for efficient queries (e.g., finding expired stock)
   @Column({ type: 'date', nullable: true })
   expiryDate: string;
 
@@ -54,7 +50,6 @@ export class Product {
   @Column({ nullable: true })
   activeIngredient: string;
 
-  // Automatically manages timestamps
   @CreateDateColumn()
   createdAt: Date;
 
