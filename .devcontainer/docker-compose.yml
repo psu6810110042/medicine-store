@@ -16,8 +16,8 @@ services:
 
   db:
     image: postgres:18-alpine
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+    # volumes:
+    #   - postgres-data:/var/lib/postgresql/data
     environment:
       # To change
       - POSTGRES_DB=medicine-store
@@ -30,11 +30,11 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    # volumes:
+    #   - redis_data:/data
 
 volumes:
-  postgres-data:
+  # postgres-data:
   redis_data:
   backend_node_modules:
   frontend_node_modules:

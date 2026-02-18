@@ -5,7 +5,6 @@ import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const RedisStore = require('connect-redis').default;
 import Redis from 'ioredis';
 
@@ -24,12 +23,12 @@ async function bootstrap() {
             store: new (RedisStore as any)({
                 client: redisClient,
             }),
-            secret: process.env.SESSION_SECRET || 'supersecret', // Use environment variable for secret
+            secret: process.env.SESSION_SECRET || 'supersecret',
             resave: false,
             saveUninitialized: false,
             cookie: {
                 maxAge: 3600000,
-                secure: false, // strictly http
+                secure: false,
                 sameSite: 'lax',
             },
         }),
