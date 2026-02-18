@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ImageUpload from './_components/ImageUpload';
 
 export default function Home() {
   return (
@@ -18,6 +19,11 @@ export default function Home() {
             Manage your pharmacy operations with elegance and efficiency. Access your workspace below.
           </p>
         </div>
+
+        {/* Upload Verification Component */}
+        <section className="w-full max-w-md">
+          <ImageUpload />
+        </section>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full mt-8">
           <Link

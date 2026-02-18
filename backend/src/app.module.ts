@@ -8,7 +8,9 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { SeedService } from './seed.service';
 import { CategoryModule } from './category/category.module';
+
 import { LoggingMiddleware } from './middleware/logging.middleware';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
     imports: [
@@ -35,6 +37,7 @@ import { LoggingMiddleware } from './middleware/logging.middleware';
         UsersModule,
         ProductsModule,
         CategoryModule,
+        StorageModule,
     ],
     controllers: [AppController],
     providers: [AppService, SeedService],

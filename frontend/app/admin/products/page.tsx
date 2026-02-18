@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { productService } from '../../services/productService';
 import { Product, Category } from '../../types/product';
 
-// Mock categories for now as we don't have a category API yet
 const categories: Category[] = [
   { id: "painkiller", name: "ยาแก้ปวด", count: 0 },
   { id: "antibiotic", name: "ยาปฏิชีวนะ", count: 0 },
