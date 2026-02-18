@@ -20,13 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.992.0",
-    "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-express": "^11.1.14",
     "@nestjs/typeorm": "^11.0.0",
     "@types/connect-redis": "^0.0.23",
     "@types/cookie-parser": "^1.4.10",
@@ -47,9 +44,12 @@
     "typeorm": "^0.3.28"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.992.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
-    "@nestjs/cli": "^11.0.0",
+    "@nestjs/cli": "^11.0.16",
+    "@nestjs/common": "^11.1.14",
+    "@nestjs/core": "^11.1.14",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/bcrypt": "^6.0.0",
@@ -61,7 +61,7 @@
     "@types/sharp": "^0.31.1",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
+    "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^30.0.0",
@@ -73,7 +73,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.14.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -91,5 +91,11 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "ajv": "^8.17.1",
+    "fast-xml-parser": "^5.3.6",
+    "cookie": "^0.7.0",
+    "path-to-regexp": "^0.1.10"
   }
 }
