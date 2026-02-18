@@ -289,9 +289,10 @@ export class SeedService implements OnModuleInit {
                 // Ensure category exists
                 const category = await this.categoryService.findById(product.category);
                 if (category) {
+                    const { category: _category, ...productData } = product;
                     await this.productsService.create({
-                        ...product,
-                        category: category,
+                        ...productData,
+                        categoryId: category.id,
                     });
                 } else {
                     this.logger.warn(`Category ${product.category} not found for product ${product.name}. Skipping.`);
