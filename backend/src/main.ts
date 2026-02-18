@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import session from 'express-session';
 import passport from 'passport';
@@ -10,6 +11,7 @@ import Redis from 'ioredis';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
+    // ConfigService is now used inside AppModule for middleware
 
     app.use(cookieParser());
 

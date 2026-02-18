@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -8,11 +8,13 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { SeedService } from './seed.service';
 import { CategoryModule } from './category/category.module';
+import { LoggingMiddleware } from './middleware/logging.middleware';
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
+            envFilePath: ['../.env', '.env'],
         }),
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
@@ -37,4 +39,15 @@ import { CategoryModule } from './category/category.module';
     controllers: [AppController],
     providers: [AppService, SeedService],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+    constructor(private configService: ConfigService) { }
+
+    configure(consumer: MiddlewareConsumer) {
+        if (this.configService.get('DEBUG') === 'true') {
+            console.log('------------------------------------------------');
+            console.log('DEBUG MODE ENABLED: LoggingMiddleware registered in AppModule');
+            console.log('------------------------------------------------');
+            consumer.apply(LoggingMiddleware).forRoutes('*');
+        }
+    }
+}
