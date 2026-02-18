@@ -5,6 +5,7 @@ import { CategoryService } from './category/category.service';
 import { ProductsService } from './products/products.service';
 import { UserRole } from './users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
 const categories = [
     {
@@ -59,7 +60,6 @@ const categories = [
 
 const products = [
     {
-        id: "prod-001",
         name: "พาราเซตามอล 500mg",
         category: "painkiller",
         price: 10000000,
@@ -74,11 +74,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 150,
-        batchNumber: "BTH2024-001",
         expiryDate: "2026-12-31",
     },
     {
-        id: "prod-002",
         name: "อะม็อกซีซิลลิน 500mg",
         category: "antibiotic",
         price: 120,
@@ -93,11 +91,9 @@ const products = [
         isControlled: false,
         requiresPrescription: true,
         stockQuantity: 0,
-        batchNumber: "BTH2024-002",
         expiryDate: "2025-08-15",
     },
     {
-        id: "prod-003",
         name: "เมทฟอร์มิน 500mg",
         category: "chronic",
         price: 180,
@@ -112,11 +108,9 @@ const products = [
         isControlled: true,
         requiresPrescription: true,
         stockQuantity: 50,
-        batchNumber: "BTH2024-003",
         expiryDate: "2026-03-20",
     },
     {
-        id: "prod-004",
         name: "วิตามินซี 1000mg",
         category: "vitamins",
         price: 350,
@@ -131,11 +125,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 200,
-        batchNumber: "BTH2024-004",
         expiryDate: "2027-01-10",
     },
     {
-        id: "prod-005",
         name: "เซรั่มวิตามินซี",
         category: "skincare",
         price: 890,
@@ -150,11 +142,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 75,
-        batchNumber: "BTH2024-005",
         expiryDate: "2025-11-30",
     },
     {
-        id: "prod-006",
         name: "เครื่องวัดความดัน ดิจิทัล",
         category: "medical-device",
         price: 1250,
@@ -169,11 +159,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 30,
-        batchNumber: "BTH2024-006",
         expiryDate: "2028-06-30",
     },
     {
-        id: "prod-007",
         name: "นมผงสูตร 1 (0-6 เดือน)",
         category: "baby",
         price: 680,
@@ -188,11 +176,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 45,
-        batchNumber: "BTH2024-007",
         expiryDate: "2025-09-15",
     },
     {
-        id: "prod-008",
         name: "โอเมก้า 3 น้ำมันปลา",
         category: "supplements",
         price: 450,
@@ -207,11 +193,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 120,
-        batchNumber: "BTH2024-008",
         expiryDate: "2026-07-22",
     },
     {
-        id: "prod-009",
         name: "ไอบูโพรเฟน 400mg",
         category: "painkiller",
         price: 45,
@@ -226,11 +210,9 @@ const products = [
         isControlled: false,
         requiresPrescription: false,
         stockQuantity: 95,
-        batchNumber: "BTH2024-009",
         expiryDate: "2026-04-18",
     },
     {
-        id: "prod-010",
         name: "ซิพโรฟล็อกซาซิน 500mg",
         category: "antibiotic",
         price: 250,
@@ -245,7 +227,6 @@ const products = [
         isControlled: true,
         requiresPrescription: true,
         stockQuantity: 40,
-        batchNumber: "BTH2024-010",
         expiryDate: "2025-10-05",
     },
 ];
@@ -282,16 +263,28 @@ export class SeedService implements OnModuleInit {
     }
 
     private async seedProducts() {
+        let batchCounter = 1;
+        const currentYear = new Date().getFullYear();
+
         for (const product of products) {
-            const existingProduct = await this.productsService.findById(product.id);
+            const allProducts = await this.productsService.findAll();
+            const existingProduct = allProducts.find(p => p.name === product.name);
+
             if (!existingProduct) {
                 this.logger.log(`Seeding product: ${product.name}`);
-                // Ensure category exists
                 const category = await this.categoryService.findById(product.category);
                 if (category) {
                     const { category: _category, ...productData } = product;
+
+                    const batchNumber = `BTH${currentYear}-${String(batchCounter).padStart(3, '0')}`;
+                    batchCounter++;
+
+                    const id = crypto.randomUUID();
+
                     await this.productsService.create({
                         ...productData,
+                        id,
+                        batchNumber,
                         categoryId: category.id,
                     });
                 } else {
