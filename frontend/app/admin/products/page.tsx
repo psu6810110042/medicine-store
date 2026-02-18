@@ -106,52 +106,53 @@ export default function AdminProductsPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading products...</div>;
-  if (error) return <div className="p-8 text-center text-red-600">Error: {error}</div>;
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading products...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">จัดการสินค้า (Product Management)</h1>
+    <div className="min-h-screen bg-background p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">จัดการสินค้า</h1>
+            <p className="text-muted-foreground">Product Management System</p>
+          </div>
           <button
             onClick={handleAddNew}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+            className="bg-primary hover:bg-blue-700 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center gap-2 shadow-sm font-medium"
           >
             + เพิ่มสินค้าใหม่
           </button>
         </div>
 
         {showForm && (
-          <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-2xl p-6 relative border border-border animate-in zoom-in-95 duration-200">
               <button
                 onClick={() => setShowForm(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
               >
                 ✕
               </button>
-              <h2 className="text-2xl font-bold mb-6">{isEditing ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}</h2>
+              <h2 className="text-2xl font-bold mb-6 text-foreground">{isEditing ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อสินค้า</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">ชื่อสินค้า</label>
                     <input
                       type="text"
                       name="name"
                       required
                       value={currentProduct.name || ''}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
+                      placeholder="ระบุชื่อสินค้า"
                     />
                   </div>
 
-                  {/* Note: ID is handled by backend, but we might want to let user set it manually or just auto-generate. 
-                      Assuming auto-gen for now, so removed ID input unless specifically needed */}
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">รหัสสินค้า (Optional)</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">รหัสสินค้า (Optional)</label>
                     <input
                       type="text"
                       name="id"
@@ -159,18 +160,18 @@ export default function AdminProductsPage() {
                       value={currentProduct.id || ''}
                       onChange={handleChange}
                       disabled={isEditing}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                      className="w-full bg-muted border border-border rounded-md p-2.5 text-muted-foreground cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">หมวดหมู่</label>
                     <select
                       name="categoryId"
                       required
                       value={currentProduct.categoryId || ''}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
                     >
                       <option value="">เลือกหมวดหมู่</option>
                       {categories.map(cat => (
@@ -180,7 +181,7 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ราคา (บาท)</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">ราคา (บาท)</label>
                     <input
                       type="number"
                       name="price"
@@ -189,36 +190,36 @@ export default function AdminProductsPage() {
                       step="0.01"
                       value={currentProduct.price || 0}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">รายละเอียด</label>
                     <textarea
                       name="description"
                       rows={3}
                       value={currentProduct.description || ''}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">สรรพคุณ</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">สรรพคุณ</label>
                     <textarea
                       name="properties"
                       rows={2}
                       value={currentProduct.properties || ''}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-border pt-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">จำนวนในสต็อก</label>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">จำนวนในสต็อก</label>
                     <input
                       type="number"
                       name="stockQuantity"
@@ -226,50 +227,48 @@ export default function AdminProductsPage() {
                       min="0"
                       value={currentProduct.stockQuantity || 0}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
                     />
                   </div>
 
-                  <div className="flex items-center pt-6">
-                    <input
-                      type="checkbox"
-                      id="isControlled"
-                      name="isControlled"
-                      checked={currentProduct.isControlled || false}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isControlled" className="ml-2 block text-sm text-gray-900">
-                      ยาควบคุม
+                  <div className="flex items-center pt-8">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="isControlled"
+                        checked={currentProduct.isControlled || false}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-primary focus:ring-ring border-border rounded"
+                      />
+                      <span className="ml-2 text-sm text-foreground">ยาควบคุม</span>
                     </label>
                   </div>
 
-                  <div className="flex items-center pt-6">
-                    <input
-                      type="checkbox"
-                      id="requiresPrescription"
-                      name="requiresPrescription"
-                      checked={currentProduct.requiresPrescription || false}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="requiresPrescription" className="ml-2 block text-sm text-gray-900">
-                      ต้องมีใบสั่งแพทย์
+                  <div className="flex items-center pt-8">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="requiresPrescription"
+                        checked={currentProduct.requiresPrescription || false}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-primary focus:ring-ring border-border rounded"
+                      />
+                      <span className="ml-2 text-sm text-foreground">ต้องมีใบสั่งแพทย์</span>
                     </label>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                <div className="flex justify-end gap-3 pt-6 border-t border-border mt-6">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
                   >
                     ยกเลิก
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-blue-700 transition-colors shadow-sm"
                   >
                     บันทึก
                   </button>
@@ -279,82 +278,84 @@ export default function AdminProductsPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สินค้า</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">หมวดหมู่</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ราคา</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สต็อก</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สินค้า</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">หมวดหมู่</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">ราคา</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สถานะ</th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สต็อก</th>
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                       ไม่พบสินค้าในระบบ
                     </td>
                   </tr>
                 ) : (
                   products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-gray-100 rounded-full overflow-hidden">
-                            {product.image ? (
-                              <img className="h-10 w-10 object-cover" src={product.image} alt="" />
+                          <div className="h-10 w-10 flex-shrink-0 bg-muted rounded-full overflow-hidden flex items-center justify-center border border-border">
+                            {product.image && product.image !== 'https://via.placeholder.com/150' ? (
+                              <img className="h-full w-full object-cover" src={product.image} alt="" />
                             ) : (
-                              <div className="h-full w-full flex items-center justify-center text-gray-400">No Img</div>
+                              <span className="text-xs text-muted-foreground">No Img</span>
                             )}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                            <div className="text-xs text-gray-500">{product.id}</div>
+                            <div className="text-sm font-medium text-foreground">{product.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{product.id}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                           {categories.find(c => c.id === product.categoryId)?.name || product.categoryId || '-'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
                         ฿{product.price.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {product.isControlled && (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 mr-2">
+                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 mr-2">
                             ยาควบคุม
                           </span>
                         )}
                         {product.requiresPrescription && (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                             ใบสั่งแพทย์
                           </span>
                         )}
                         {!product.isControlled && !product.requiresPrescription && (
-                          <span className="text-xs text-green-600">ทั่วไป</span>
+                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            ทั่วไป
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <span className={product.stockQuantity < 10 ? 'text-red-500' : 'text-gray-900'}>
+                        <span className={product.stockQuantity < 10 ? 'text-red-500 font-bold' : 'text-foreground'}>
                           {product.stockQuantity}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(product)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                          className="text-primary hover:text-blue-700 mr-4 transition-colors"
                         >
                           แก้ไข
                         </button>
                         <button
                           onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-500 hover:text-red-700 transition-colors"
                         >
                           ลบ
                         </button>
