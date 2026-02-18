@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
+import { SeedService } from './seed.service';
 
 @Module({
     imports: [
@@ -32,6 +33,6 @@ import { ProductsModule } from './products/products.module';
         ProductsModule,
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [AppService, SeedService],
 })
 export class AppModule { }
