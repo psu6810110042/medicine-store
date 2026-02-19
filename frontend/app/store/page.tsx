@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { productsService, Product, Category } from '@/services/products.service';
 
-function SearchForm({ initialSearch }: { initialSearch: string }) {
-  const [search, setSearch] = useState(initialSearch);
+function SearchForm() {
+  const [search, setSearch] = useState('');
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -19,7 +19,7 @@ function SearchForm({ initialSearch }: { initialSearch: string }) {
     if (search.trim()) {
       params.set('search', search.trim());
     }
-    router.push(`/store?${params.toString()}`);
+    router.push(`/products?${params.toString()}`);
   };
 
   return (
@@ -45,15 +45,13 @@ function StoreContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const searchParams = useSearchParams();
-  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const [productsData] = await Promise.all([
-          productsService.getAll(undefined, searchQuery),
+          productsService.getAll(),
           // productsService.getAllCategories() // TODO: Implement categories
         ]);
         setProducts(productsData);
@@ -66,7 +64,7 @@ function StoreContent() {
     };
 
     fetchData();
-  }, [searchQuery]);
+  }, []);
 
   const getIconComponent = (iconName: string) => {
     const icons: { [key: string]: any } = {
@@ -114,7 +112,7 @@ function StoreContent() {
             </p>
           </div>
           {/* Search Bar */}
-          <SearchForm initialSearch={searchQuery} />
+          <SearchForm />
         </header>
 
         {/* Categories */}
