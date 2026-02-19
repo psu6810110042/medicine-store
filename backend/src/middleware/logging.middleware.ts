@@ -13,8 +13,7 @@ export class LoggingMiddleware implements NestMiddleware {
             this.logger.debug(`Query: ${JSON.stringify(query)}`);
         }
         if (method !== 'GET' && body && Object.keys(body).length > 0) {
-            // Be careful not to log sensitive data like passwords in production, 
-            // but for debug mode it's usually what we want.
+            // be careful not to log sensitive data like passwords in production
             this.logger.debug(`Body: ${JSON.stringify(body)}`);
         }
 

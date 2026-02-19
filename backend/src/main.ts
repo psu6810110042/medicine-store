@@ -11,7 +11,6 @@ import Redis from 'ioredis';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
-    // ConfigService is now used inside AppModule for middleware
 
     app.use(cookieParser());
 

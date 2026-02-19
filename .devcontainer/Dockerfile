@@ -1,6 +1,6 @@
 FROM node:24-alpine
 
-RUN apk add --no-cache tmux
+RUN apk add --no-cache tmux socat
 
 WORKDIR /workspace
 RUN chown node:node /workspace

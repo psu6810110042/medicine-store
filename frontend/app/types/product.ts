@@ -1,8 +1,8 @@
 export interface Product {
   id: string;
   name: string;
-  categoryId?: string; // Foreign key
-  category?: Category; // Relation
+  categoryId?: string;
+  category?: Category;
   price: number;
   description: string;
   properties?: string;

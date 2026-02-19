@@ -1,46 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { productService } from '../../services/productService';
+import { categoryService } from '../../services/categoryService';
 import { Product, Category } from '../../types/product';
-
-// Mock categories for now as we don't have a category API yet
-const categories: Category[] = [
-  { id: "painkiller", name: "ยาแก้ปวด", count: 0 },
-  { id: "antibiotic", name: "ยาปฏิชีวนะ", count: 0 },
-  { id: "vitamins", name: "วิตามินและอาหารเสริม", count: 0 },
-  { id: "skincare", name: "ผลิตภัณฑ์ดูแลผิว", count: 0 },
-  { id: "chronic", name: "ยาโรคเรื้อรัง", count: 0 },
-  { id: "medical-device", name: "เครื่องมือแพทย์", count: 0 },
-  { id: "baby", name: "สินค้าเด็กและแม่", count: 0 },
-  { id: "supplements", name: "อาหารเสริม", count: 0 },
-];
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [showForm, setShowForm] = useState(false);
 
-  const fetchProducts = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await productService.getProducts();
-      setProducts(data);
+      const [productsData, categoriesData] = await Promise.all([
+        productService.getProducts(),
+        categoryService.getCategories(),
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch products');
+      setError(err.message || 'Failed to fetch data');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {

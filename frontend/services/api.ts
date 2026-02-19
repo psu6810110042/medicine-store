@@ -14,7 +14,6 @@ export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): 
     throw new Error(errorBody.message || `API Error: ${res.statusText}`);
   }
 
-  // Handle empty responses (like 204 No Content for DELETE)
   if (res.status === 204) {
     return {} as T;
   }
