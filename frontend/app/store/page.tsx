@@ -1,26 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { productsService, Product, Category } from '@/services/products.service';
 
-export default function StorePage() {
+function SearchForm({ initialSearch }: { initialSearch: string }) {
+  const [search, setSearch] = useState(initialSearch);
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (search.trim()) {
+      params.set('search', search.trim());
+    }
+    router.push(`/store?${params.toString()}`);
+  };
+
+  return (
+    <form onSubmit={handleSearch} className="w-full max-w-md">
+      <div className="flex gap-2 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="ค้นหายา..."
+          className="pl-10 h-12 bg-white/50 backdrop-blur-sm border-gray-200 focus:bg-white transition-all"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md">
+          ค้นหา
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function StoreContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const [productsData] = await Promise.all([
-          productsService.getAll(),
+          productsService.getAll(undefined, searchQuery),
           // productsService.getAllCategories() // TODO: Implement categories
         ]);
         setProducts(productsData);
@@ -33,16 +66,7 @@ export default function StorePage() {
     };
 
     fetchData();
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // router.push(`/store/search?q=${encodeURIComponent(searchQuery)}`);
-      // For now, just filter locally or do nothing as per requirement simplicity
-      console.log('Search:', searchQuery);
-    }
-  };
+  }, [searchQuery]);
 
   const getIconComponent = (iconName: string) => {
     const icons: { [key: string]: any } = {
@@ -90,21 +114,7 @@ export default function StorePage() {
             </p>
           </div>
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="w-full max-w-md">
-            <div className="flex gap-2 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="ค้นหายา..."
-                className="pl-10 h-12 bg-white/50 backdrop-blur-sm border-gray-200 focus:bg-white transition-all"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md">
-                ค้นหา
-              </Button>
-            </div>
-          </form>
+          <SearchForm initialSearch={searchQuery} />
         </header>
 
         {/* Categories */}
@@ -274,5 +284,13 @@ export default function StorePage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function StorePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <StoreContent />
+    </Suspense>
   );
 }

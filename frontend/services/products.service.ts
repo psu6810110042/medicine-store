@@ -19,9 +19,11 @@ export interface Category {
 }
 
 export const productsService = {
-  async getAll(categoryId?: string): Promise<Product[]> {
-    const query = categoryId ? `?categoryId=${categoryId}` : '';
-    return fetchApi<Product[]>(`/products${query}`);
+  async getAll(categoryId?: string, search?: string): Promise<Product[]> {
+    const params = new URLSearchParams();
+    if (categoryId) params.append('categoryId', categoryId);
+    if (search) params.append('search', search);
+    return fetchApi<Product[]>(`/products?${params.toString()}`);
   },
 
   async getById(id: string): Promise<Product> {
