@@ -13,8 +13,26 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(@Query('categoryId') categoryId?: string) {
-    return this.productsService.findAll(categoryId);
+  findAll(
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('inStock') inStock?: string,
+    @Query('isControlled') isControlled?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+  ) {
+    return this.productsService.findAll({
+      search,
+      categoryId,
+      minPrice,
+      maxPrice,
+      inStock: inStock === 'true' ? true : inStock === 'false' ? false : undefined,
+      isControlled: isControlled === 'true' ? true : isControlled === 'false' ? false : undefined,
+      sortBy,
+      sortOrder,
+    });
   }
 
   @Get(':id')
