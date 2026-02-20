@@ -131,7 +131,7 @@ export default function ProductListPage() {
             toast.error('เฉพาะลูกค้าเท่านั้นที่สามารถสั่งซื้อสินค้าได้');
             return;
         }
-        addToCart(product, 1);
+        addToCart(product.id, 1);
         toast.success(`เพิ่ม ${product.name} ลงตะกร้าแล้ว`);
     };
 
@@ -145,7 +145,7 @@ export default function ProductListPage() {
             toast.error('เฉพาะลูกค้าเท่านั้นที่สามารถสั่งซื้อสินค้าได้');
             return;
         }
-        addToCart(product, 1);
+        addToCart(product.id, 1);
         router.push('/checkout');
     };
 

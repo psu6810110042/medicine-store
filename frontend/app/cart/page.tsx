@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 export default function CartPage() {
-    const { cart, updateQuantity, removeFromCart, clearCart, getTotalItems } = useCart();
+    const { cart, updateQuantity, removeFromCart, clearCart, totalItems } = useCart();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
@@ -107,7 +107,7 @@ export default function CartPage() {
                         <ShoppingBag className="w-8 h-8 text-primary" />
                         ตะกร้าสินค้า
                         <span className="text-lg font-normal text-muted-foreground ml-2">
-                            ({getTotalItems()} รายการ)
+                            ({totalItems} รายการ)
                         </span>
                     </h1>
                     <Link href="/">
@@ -217,7 +217,7 @@ export default function CartPage() {
                                     <h2 className="text-lg font-bold text-gray-900 mb-6">สรุปคำสั่งซื้อ</h2>
                                     <div className="space-y-4">
                                         <div className="flex justify-between text-base text-gray-600">
-                                            <span>ยอดรวม ({getTotalItems()} ชิ้น)</span>
+                                            <span>ยอดรวม ({totalItems} ชิ้น)</span>
                                             <span>฿{calculateTotal().toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-base text-gray-600">
