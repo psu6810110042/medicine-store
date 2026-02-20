@@ -2,30 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
+    const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-                credentials: "include",
-            });
-
-            if (res.ok) {
-                router.push("/dashboard");
-            } else {
-                alert("Login failed");
-            }
-        } catch (error) {
-            console.error(error);
-            alert("An error occurred");
+        const success = await login(email, password);
+        if (success) {
+            router.push("/dashboard");
+        } else {
+            alert("Login failed");
         }
     };
 

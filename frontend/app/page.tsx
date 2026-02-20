@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsService, Product, Category } from '@/services/products.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 function SearchForm() {
   const [search, setSearch] = useState('');
@@ -46,6 +47,7 @@ function StoreContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +106,7 @@ function StoreContent() {
       <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="flex flex-col md:flex-row items-center justify-between mb-12 glass rounded-2xl p-8 shadow-lg relative">
+
           <div className="text-center md:text-left mb-6 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
               <span className="text-gradient">Medicine Store</span>

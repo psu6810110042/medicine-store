@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, ILike, Between, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 import { Product } from './entities/products.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -30,10 +30,11 @@ export class ProductsService {
     maxPrice?: number;
     inStock?: boolean;
     isControlled?: boolean;
+    ids?: string[];
     sortBy?: string;
     sortOrder?: 'ASC' | 'DESC';
   } = {}): Promise<Product[]> {
-    const { search, categoryId, minPrice, maxPrice, inStock, isControlled, sortBy, sortOrder } = params;
+    const { search, categoryId, minPrice, maxPrice, inStock, isControlled, ids, sortBy, sortOrder } = params;
 
     const where: any = {};
 
@@ -56,6 +57,10 @@ export class ProductsService {
       where.price = MoreThanOrEqual(minPrice);
     } else if (maxPrice !== undefined) {
       where.price = LessThanOrEqual(maxPrice);
+    }
+
+    if (ids && ids.length > 0) {
+      where.id = In(ids);
     }
 
     // Search query (name or description)
@@ -136,6 +141,10 @@ export class ProductsService {
 
     if (maxPrice !== undefined) {
       query.andWhere('product.price <= :maxPrice', { maxPrice });
+    }
+
+    if (ids && ids.length > 0) {
+      query.andWhere('product.id IN (:...ids)', { ids });
     }
 
     if (sortBy) {
