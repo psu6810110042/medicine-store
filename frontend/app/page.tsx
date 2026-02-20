@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf } from 'lucide-react';
+import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf, ShoppingBag, User as UserIcon, LogOut, LogIn } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsService, Product, Category } from '@/services/products.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 function SearchForm() {
   const [search, setSearch] = useState('');
@@ -46,6 +47,7 @@ function StoreContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,9 +106,30 @@ function StoreContent() {
       <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="flex flex-col md:flex-row items-center justify-between mb-12 glass rounded-2xl p-8 shadow-lg relative">
-          <Link href="/dev" className="absolute top-4 right-4 px-3 py-1 bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white hover:text-gray-900 rounded-full text-xs font-medium transition-all shadow-sm border border-white/40 z-10">
-            Dev Page
-          </Link>
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <Link href="/cart" className="px-3 py-1 bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white hover:text-primary rounded-full text-xs font-medium transition-all shadow-sm border border-white/40 flex items-center gap-1">
+              <ShoppingBag className="w-3 h-3" />
+              Cart
+            </Link>
+            <Link href="/dev" className="px-3 py-1 bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white hover:text-gray-900 rounded-full text-xs font-medium transition-all shadow-sm border border-white/40">
+              Dev Page
+            </Link>
+            {user ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-gray-300/50">
+                <span className="text-sm font-medium text-gray-700 hidden sm:inline-block">
+                  {user.name || user.email}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => logout()} className="h-7 w-7 rounded-full hover:bg-red-50 hover:text-red-500" title="ออกจากระบบ">
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login" className="px-3 py-1 bg-primary/10 backdrop-blur-sm text-primary hover:bg-primary hover:text-white rounded-full text-xs font-medium transition-all shadow-sm border border-primary/20 flex items-center gap-1">
+                <LogIn className="w-3 h-3" />
+                Login
+              </Link>
+            )}
+          </div>
           <div className="text-center md:text-left mb-6 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
               <span className="text-gradient">Medicine Store</span>

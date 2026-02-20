@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { Product } from '@/app/types/product';
 
 export interface CartItem {
-    product: Product;
+    productId: string;
     quantity: number;
 }
 
@@ -15,9 +15,6 @@ interface CartContextType {
     updateQuantity: (productId: string, quantity: number) => void;
     clearCart: () => void;
     getTotalItems: () => number;
-    getTotalPrice: () => number;
-    getNormalItems: () => CartItem[];
-    getControlledItems: () => CartItem[];
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,20 +26,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const addToCart = (product: Product, quantity: number = 1) => {
         setCart(prev => {
-            const existingItem = prev.find(item => item.product.id === product.id);
+            const existingItem = prev.find(item => item.productId === product.id);
             if (existingItem) {
                 return prev.map(item =>
-                    item.product.id === product.id
+                    item.productId === product.id
                         ? { ...item, quantity: item.quantity + quantity }
                         : item
                 );
             }
-            return [...prev, { product, quantity }];
+            return [...prev, { productId: product.id, quantity }];
         });
     };
 
     const removeFromCart = (productId: string) => {
-        setCart(prev => prev.filter(item => item.product.id !== productId));
+        setCart(prev => prev.filter(item => item.productId !== productId));
     };
 
     const updateQuantity = (productId: string, quantity: number) => {
@@ -52,7 +49,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         setCart(prev =>
             prev.map(item =>
-                item.product.id === productId ? { ...item, quantity } : item
+                item.productId === productId ? { ...item, quantity } : item
             )
         );
     };
@@ -65,24 +62,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return cart.reduce((total, item) => total + item.quantity, 0);
     };
 
-    const getTotalPrice = () => {
-        return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-    };
-
-    const getNormalItems = () => {
-        return cart.filter(item => !item.product.isControlled);
-    };
-
-    const getControlledItems = () => {
-        return cart.filter(item => item.product.isControlled);
-    };
-
     // Load cart from localStorage on mount
     useEffect(() => {
         try {
             const savedCart = localStorage.getItem('cart');
             if (savedCart) {
-                setCart(JSON.parse(savedCart));
+                const parsedCart = JSON.parse(savedCart);
+                // Basic validation could be added here
+                setCart(parsedCart);
             }
         } catch (error) {
             console.error('Error loading cart from localStorage:', error);
@@ -107,9 +94,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 updateQuantity,
                 clearCart,
                 getTotalItems,
-                getTotalPrice,
-                getNormalItems,
-                getControlledItems,
             }}
         >
             {children}

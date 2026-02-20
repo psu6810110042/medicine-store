@@ -20,6 +20,7 @@ export class ProductsController {
     @Query('maxPrice') maxPrice?: number,
     @Query('inStock') inStock?: string,
     @Query('isControlled') isControlled?: string,
+    @Query('ids') ids?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
   ) {
@@ -30,6 +31,7 @@ export class ProductsController {
       maxPrice,
       inStock: inStock === 'true' ? true : inStock === 'false' ? false : undefined,
       isControlled: isControlled === 'true' ? true : isControlled === 'false' ? false : undefined,
+      ids: ids ? ids.split(',') : undefined,
       sortBy,
       sortOrder,
     });

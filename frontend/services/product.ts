@@ -11,6 +11,7 @@ export interface FetchProductsParams {
     isControlled?: boolean;
     sortBy?: string;
     sortOrder?: 'ASC' | 'DESC';
+    ids?: string[];
 }
 
 export const fetchProducts = async (params?: FetchProductsParams): Promise<Product[]> => {
@@ -24,6 +25,8 @@ export const fetchProducts = async (params?: FetchProductsParams): Promise<Produ
             if (params.maxPrice !== undefined) url.searchParams.append('maxPrice', params.maxPrice.toString());
             if (params.inStock !== undefined) url.searchParams.append('inStock', params.inStock.toString());
             if (params.isControlled !== undefined) url.searchParams.append('isControlled', params.isControlled.toString());
+            if (params.isControlled !== undefined) url.searchParams.append('isControlled', params.isControlled.toString());
+            if (params.ids && params.ids.length > 0) url.searchParams.append('ids', params.ids.join(','));
             if (params.sortBy) url.searchParams.append('sortBy', params.sortBy);
             if (params.sortOrder) url.searchParams.append('sortOrder', params.sortOrder);
         }
