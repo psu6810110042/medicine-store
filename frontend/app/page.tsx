@@ -1,129 +1,298 @@
-import Link from 'next/link';
-import ImageUpload from './_components/ImageUpload';
+'use client';
 
-export default function Home() {
+import { useState, useEffect, Suspense } from 'react';
+import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { productsService, Product, Category } from '@/services/products.service';
+
+function SearchForm() {
+  const [search, setSearch] = useState('');
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (search.trim()) {
+      params.set('search', search.trim());
+    }
+    router.push(`/products?${params.toString()}`);
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+    <form onSubmit={handleSearch} className="w-full max-w-md">
+      <div className="flex gap-2 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="ค้นหายา..."
+          className="pl-10 h-12 bg-white/50 backdrop-blur-sm border-gray-200 focus:bg-white transition-all"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md">
+          ค้นหา
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function StoreContent() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [productsData] = await Promise.all([
+          productsService.getAll(),
+          // productsService.getAllCategories() // TODO: Implement categories
+        ]);
+        setProducts(productsData);
+        // setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const getIconComponent = (iconName: string) => {
+    const icons: { [key: string]: any } = {
+      pill: Pill,
+      syringe: Syringe,
+      'heart-pulse': HeartPulse,
+      sparkles: Sparkles,
+      activity: Activity,
+      stethoscope: Stethoscope,
+      baby: Baby,
+      leaf: Leaf,
+    };
+    const Icon = icons[iconName] || Package;
+    return <Icon className="w-8 h-8" />;
+  };
+
+  // Mock categories if not fetched
+  const displayCategories = categories.length > 0 ? categories : [
+    { id: '1', name: 'ยาสามัญ', icon: 'pill', count: 0 },
+    { id: '2', name: 'เวชภัณฑ์', icon: 'stethoscope', count: 0 },
+    { id: '3', name: 'อาหารเสริม', icon: 'leaf', count: 0 },
+    { id: '4', name: 'อุปกรณ์การแพทย์', icon: 'activity', count: 0 },
+  ];
+
+  const promotedProducts = products.slice(0, 4);
+  const recommendedProducts = products.slice(4, 8);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center bg-background relative overflow-hidden">
       {/* Background Gradients */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-500/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/20 rounded-full blur-[120px]" />
       </div>
 
-      <main className="flex flex-col items-center gap-8 text-center glass rounded-2xl p-12 shadow-2xl max-w-5xl w-full mx-4">
-        <div className="space-y-4">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl text-foreground">
-            <span className="text-gradient">Medicine Store</span>
-          </h1>
-          <p className="max-w-2xl mx-auto text-lg leading-8 text-muted-foreground">
-            Manage your pharmacy operations with elegance and efficiency. Access your workspace below.
-          </p>
-        </div>
+      <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row items-center justify-between mb-12 glass rounded-2xl p-8 shadow-lg relative">
+          <Link href="/dev" className="absolute top-4 right-4 px-3 py-1 bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white hover:text-gray-900 rounded-full text-xs font-medium transition-all shadow-sm border border-white/40 z-10">
+            Dev Page
+          </Link>
+          <div className="text-center md:text-left mb-6 md:mb-0">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+              <span className="text-gradient">Medicine Store</span>
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              จำหน่ายยาและเวชภัณฑ์คุณภาพ พร้อมบริการโดยเภสัชกรมืออาชีพ
+            </p>
+          </div>
+          {/* Search Bar */}
+          <SearchForm />
+        </header>
 
-        {/* Upload Verification Component */}
-        <section className="w-full max-w-md">
-          <ImageUpload />
+        {/* Categories */}
+        <section className="mb-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">หมวดหมู่สินค้า</h2>
+            <Button
+              variant="outline"
+              onClick={() => { }}
+              className="bg-white/50 backdrop-blur-sm hover:bg-white/80"
+            >
+              ดูสินค้าทั้งหมด
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+            {displayCategories.map((category: any) => (
+              <Card
+                key={category.id}
+                className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 bg-white/60 backdrop-blur-md border-white/20"
+                onClick={() => { }}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                    {getIconComponent(category.icon || 'package')}
+                  </div>
+                  <p className="font-medium text-foreground">{category.name}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </section>
 
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full mt-8">
-          {/* Home Route */}
-          <Link
-            href="/"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-indigo-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+        {/* Promoted Products */}
+        <section className="mb-16">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <Tag className="w-5 h-5 text-red-500" />
             </div>
-            <span className="font-semibold text-foreground">Home</span>
-            <span className="text-xs text-muted-foreground">Root Page</span>
-          </Link>
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">โปรโมชั่นพิเศษ</h2>
+          </div>
 
-          {/* Login Route */}
-          <Link
-            href="/login"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-blue-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" x2="3" y1="12" y2="12" /></svg>
+          {loading ? (
+            <div className="text-center py-20 bg-white/30 backdrop-blur-sm rounded-xl">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="h-4 w-4 bg-primary/50 rounded-full mb-2"></div>
+                <p className="text-muted-foreground">กำลังโหลดสินค้า...</p>
+              </div>
             </div>
-            <span className="font-semibold text-foreground">Login</span>
-            <span className="text-xs text-muted-foreground">Access your account</span>
-          </Link>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {promotedProducts.map(product => (
+                <Card
+                  key={product.id}
+                  className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
+                  onClick={() => { }}
+                >
+                  <div className="relative bg-white/50 h-48 p-4">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={product.image || 'https://placehold.co/300x200?text=No+Image'}
+                      alt={product.name}
+                      className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transform group-hover:scale-110 transition-transform duration-500"
+                    />
+                    {product.isControlled && (
+                      <Badge className="absolute top-2 right-2 shadow-sm" variant="destructive">
+                        ยาควบคุม
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-2 line-clamp-2 text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-lg font-bold text-primary">฿{product.price}</span>
+                      {product.requiresPrescription && (
+                        <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200">
+                          ใบสั่งแพทย์
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
 
-          {/* Register Route */}
-          <Link
-            href="/register"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-green-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" x2="20" y1="8" y2="14" /><line x1="23" x2="17" y1="11" y2="11" /></svg>
+        {/* Recommended Products */}
+        <section className="mb-16">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <span className="font-semibold text-foreground">Register</span>
-            <span className="text-xs text-muted-foreground">Create a new account</span>
-          </Link>
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">สินค้าแนะนำ</h2>
+          </div>
 
-          {/* Dashboard Route */}
-          <Link
-            href="/dashboard"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-purple-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
+          {loading ? (
+            <div className="text-center py-20 bg-white/30 backdrop-blur-sm rounded-xl">
+              <p className="text-muted-foreground">กำลังโหลดสินค้า...</p>
             </div>
-            <span className="font-semibold text-foreground">Dashboard</span>
-            <span className="text-xs text-muted-foreground">User Dashboard</span>
-          </Link>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recommendedProducts.map(product => (
+                <Card
+                  key={product.id}
+                  className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
+                  onClick={() => { }}
+                >
+                  <div className="relative bg-white/50 h-48 p-4">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={product.image || 'https://placehold.co/300x200?text=No+Image'}
+                      alt={product.name}
+                      className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transform group-hover:scale-110 transition-transform duration-500"
+                    />
+                    {product.isControlled && (
+                      <Badge className="absolute top-2 right-2 shadow-sm" variant="destructive">
+                        ยาควบคุม
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-2 line-clamp-2 text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-lg font-bold text-primary">฿{product.price}</span>
+                      {product.requiresPrescription && (
+                        <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200">
+                          ใบสั่งแพทย์
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
 
-          {/* Products Route */}
-          <Link
-            href="/products"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-teal-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22v-10" /></svg>
+        {/* Features */}
+        <section className="py-12 bg-white/40 backdrop-blur-sm rounded-3xl border border-white/40 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-8">
+            <div className="text-center group">
+              <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-2 text-lg">ยารับรองคุณภาพ</h3>
+              <p className="text-muted-foreground">สินค้าทุกรายการผ่านการรับรองจาก อย.</p>
             </div>
-            <span className="font-semibold text-foreground">Products</span>
-            <span className="text-xs text-muted-foreground">Browse Products</span>
-          </Link>
-
-          {/* Store Route */}
-          <Link
-            href="/store"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-rose-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4a4 4 0 0 1 8 0v2" /></svg>
+            <div className="text-center group">
+              <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Stethoscope className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-2 text-lg">เภสัชกรมืออาชีพ</h3>
+              <p className="text-muted-foreground">ตรวจสอบคำสั่งซื้อโดยเภสัชกรผู้เชี่ยวชาญ</p>
             </div>
-            <span className="font-semibold text-foreground">Store</span>
-            <span className="text-xs text-muted-foreground">Store Front</span>
-          </Link>
-
-          {/* Admin Route */}
-          <Link
-            href="/admin/products"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-orange-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+            <div className="text-center group">
+              <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Activity className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-2 text-lg">จัดส่งรวดเร็ว</h3>
+              <p className="text-muted-foreground">ส่งถึงบ้านคุณภายใน 24-48 ชั่วโมง</p>
             </div>
-            <span className="font-semibold text-foreground">Admin</span>
-            <span className="text-xs text-muted-foreground">System Config</span>
-          </Link>
-
-          {/* Not Found Route */}
-          <Link
-            href="/_not-found"
-            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-red-500/50 hover:-translate-y-1"
-          >
-            <div className="p-3 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
-            </div>
-            <span className="font-semibold text-foreground">Not Found</span>
-            <span className="text-xs text-muted-foreground">404 Test</span>
-          </Link>
-        </div>
-      </main>
+          </div>
+        </section>
+      </div>
     </div>
+  );
+}
+
+export default function StorePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <StoreContent />
+    </Suspense>
   );
 }
