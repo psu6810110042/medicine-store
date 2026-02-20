@@ -7,11 +7,42 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter, usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Product } from '@/app/types/product';
+import { fetchProducts } from '@/services/product';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { cart, updateQuantity, removeFromCart, getTotalItems, getTotalPrice } = useCart();
+  const { cart, updateQuantity, removeFromCart, getTotalItems } = useCart();
+  const [cartProducts, setCartProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const loadCartProducts = async () => {
+      const ids = cart.map((item: any) => item.productId);
+      if (ids.length === 0) {
+        setCartProducts([]);
+        return;
+      }
+      try {
+        const fetchedProducts = await fetchProducts({ ids });
+        setCartProducts(fetchedProducts);
+      } catch (error) {
+        console.error('Failed to load cart products in navbar:', error);
+      }
+    };
+
+    // We fetch when cart ids change
+    loadCartProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(cart.map((c: any) => c.productId).sort())]);
+
+  const getTotalPrice = () => {
+    return cart.reduce((total: number, item: any) => {
+      const product = cartProducts.find((p: any) => p.id === item.productId);
+      return total + (product ? product.price * item.quantity : 0);
+    }, 0);
+  };
 
   const isProductsPage = pathname?.startsWith('/products');
 
@@ -59,36 +90,40 @@ export default function Navbar() {
                       <p className="text-sm text-gray-400 mt-1">เลือกซื้อสินค้าที่คุณต้องการได้เลย</p>
                     </div>
                   ) : (
-                    cart.map((item) => (
-                      <div key={item.product.id} className="flex gap-4 border-b border-gray-100 pb-4 group">
-                        <div className="w-20 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex-shrink-0 p-2">
-                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply" />
-                        </div>
-                        <div className="flex-1 flex flex-col justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">{item.product.name}</h4>
-                            <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.product.description}</p>
+                    cart.map((item: any) => {
+                      const product = cartProducts.find((p: any) => p.id === item.productId);
+                      if (!product) return null; // loading state essentially
+                      return (
+                        <div key={product.id} className="flex gap-4 border-b border-gray-100 pb-4 group">
+                          <div className="w-20 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex-shrink-0 p-2">
+                            <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
-                              <button className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="text-sm font-semibold w-4 text-center">{item.quantity}</span>
-                              <button className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(item.product.id, item.quantity + 1)}>
-                                <Plus className="w-3 h-3" />
-                              </button>
+                          <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-semibold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h4>
+                              <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <span className="font-bold text-primary">฿{(item.product.price * item.quantity).toLocaleString()}</span>
-                              <button className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => removeFromCart(item.product.id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
+                                <button className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(product.id, item.quantity - 1)}>
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-sm font-semibold w-4 text-center">{item.quantity}</span>
+                                <button className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(product.id, item.quantity + 1)}>
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="font-bold text-primary">฿{(product.price * item.quantity).toLocaleString()}</span>
+                                <button className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => removeFromCart(product.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
