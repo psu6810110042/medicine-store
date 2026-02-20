@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf } from 'lucide-react';
+import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf, UserCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,37 +100,6 @@ function StoreContent() {
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-500/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/20 rounded-full blur-[120px]" />
       </div>
-
-      {/* Global Navigation */}
-      <nav className="w-full border-b border-white/20 bg-white/40 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-colors">
-              <Pill className="w-6 h-6 text-primary" />
-            </div>
-            <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-              MedStore
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-6">
-            <Link
-              href="/products"
-              className="text-sm font-medium text-gray-700 hover:text-primary transition-colors flex items-center gap-2"
-            >
-              <Package className="w-4 h-4" />
-              สินค้าทั้งหมด
-            </Link>
-            <div className="w-px h-4 bg-gray-300"></div>
-            <Link
-              href="/dev"
-              className="px-4 py-2 bg-gray-900/5 hover:bg-gray-900/10 text-gray-700 rounded-full text-sm font-medium transition-all"
-            >
-              Dev Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
