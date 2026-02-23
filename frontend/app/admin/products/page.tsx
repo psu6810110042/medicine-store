@@ -1,365 +1,224 @@
+// medicine-store/frontend/app/admin/page.tsx
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { Product, Category } from '../../types/product';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Package, AlertCircle, ShieldAlert, FileText, TrendingUp, ArrowRight } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-export default function AdminProductsPage() {
+export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
-  const [showForm, setShowForm] = useState(false);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [productsData, categoriesData] = await Promise.all([
-        productService.getProducts(),
-        categoryService.getCategories(),
-      ]);
-      setProducts(productsData);
-      setCategories(categoriesData);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch data');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
+    const fetchData = async () => {
       try {
-        await productService.deleteProduct(id);
-        setProducts(products.filter(p => p.id !== id));
-      } catch (err: any) {
-        alert(`Failed to delete: ${err.message}`);
+        setLoading(true);
+        const [productsData, categoriesData] = await Promise.all([
+          productService.getProducts(),
+          categoryService.getCategories(),
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
       }
-    }
-  };
+    };
+    fetchData();
+  }, []);
 
-  const handleEdit = (product: Product) => {
-    setCurrentProduct({
-      ...product,
-      price: Number(product.price),
-      stockQuantity: Number(product.stockQuantity)
+  // คำนวณสถิติต่างๆ
+  const stats = useMemo(() => {
+    const totalProducts = products.length;
+    const lowStockThreshold = 10;
+    const lowStockCount = products.filter((p: Product) => p.stockQuantity < lowStockThreshold).length;
+    const controlledCount = products.filter((p: Product) => p.isControlled).length;
+    const prescriptionCount = products.filter((p: Product) => p.requiresPrescription).length;
+
+    return { totalProducts, lowStockCount, controlledCount, prescriptionCount };
+  }, [products]);
+
+  // เตรียมข้อมูลกราฟแยกตามหมวดหมู่
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((p: Product) => {
+      const catName = categories.find((c: Category) => c.id === p.categoryId)?.name || 'Uncategorized';
+      counts[catName] = (counts[catName] || 0) + 1;
     });
-    setIsEditing(true);
-    setShowForm(true);
-  };
+    return Object.keys(counts).map((key) => ({ name: key, count: counts[key] }));
+  }, [products, categories]);
 
-  const handleAddNew = () => {
-    setCurrentProduct({
-      inStock: true,
-      price: 0,
-      stockQuantity: 0,
-      isControlled: false,
-      requiresPrescription: false,
-      image: 'https://via.placeholder.com/150'
-    });
-    setIsEditing(false);
-    setShowForm(true);
-  };
+  // สินค้าที่เหลือน้อย (สำหรับแสดงใน Action Required)
+  const lowStockItems = useMemo(() => {
+    return products
+      .filter((p: Product) => p.stockQuantity < 10)
+      .sort((a: Product, b: Product) => a.stockQuantity - b.stockQuantity)
+      .slice(0, 5);
+  }, [products]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (isEditing && currentProduct.id) {
-        const updated = await productService.updateProduct(currentProduct.id, currentProduct);
-        setProducts(products.map(p => (p.id === updated.id ? updated : p)));
-      } else {
-        const newProduct = await productService.createProduct(currentProduct as Product);
-        setProducts([...products, newProduct]);
-      }
-      setShowForm(false);
-      setCurrentProduct({});
-    } catch (err: any) {
-      alert(`Failed to save: ${err.message}`);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setCurrentProduct({ ...currentProduct, [name]: checked });
-    } else if (name === 'price' || name === 'stockQuantity') {
-      setCurrentProduct({ ...currentProduct, [name]: Number(value) });
-    } else {
-      setCurrentProduct({ ...currentProduct, [name]: value });
-    }
-  };
-
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading products...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading Dashboard...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">จัดการสินค้า</h1>
-            <p className="text-muted-foreground">Product Management System</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">ภาพรวมระบบคลังสินค้า</p>
           </div>
-          <button
-            onClick={handleAddNew}
-            className="bg-primary hover:bg-blue-700 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center gap-2 shadow-sm font-medium"
-          >
-            + เพิ่มสินค้าใหม่
-          </button>
+          <Link href="/admin/products">
+            <Button className="gap-2">
+              จัดการสินค้า <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-2xl p-6 relative border border-border animate-in zoom-in-95 duration-200">
-              <button
-                onClick={() => setShowForm(false)}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ✕
-              </button>
-              <h2 className="text-2xl font-bold mb-6 text-foreground">{isEditing ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}</h2>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Stock */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">สินค้าทั้งหมด</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalProducts}</div>
+              <p className="text-xs text-muted-foreground">รายการในระบบ</p>
+            </CardContent>
+          </Card>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-foreground mb-1.5">ชื่อสินค้า</label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={currentProduct.name || ''}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
-                      placeholder="ระบุชื่อสินค้า"
+          {/* Low Stock */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">สินค้าใกล้หมด</CardTitle>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{stats.lowStockCount}</div>
+              <p className="text-xs text-muted-foreground">เหลือน้อยกว่า 10 ชิ้น</p>
+            </CardContent>
+          </Card>
+
+          {/* Controlled Drugs (Replaces Expiring Soon) */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">ยาควบคุม</CardTitle>
+              <ShieldAlert className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.controlledCount}</div>
+              <p className="text-xs text-muted-foreground">รายการที่ต้องควบคุมพิเศษ</p>
+            </CardContent>
+          </Card>
+
+          {/* Prescription Required (Replaces Expired) */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">ต้องมีใบสั่งแพทย์</CardTitle>
+              <FileText className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.prescriptionCount}</div>
+              <p className="text-xs text-muted-foreground">จำกัดการขาย</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts & Lists Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          
+          {/* Chart Section */}
+          <Card className="col-span-1 lg:col-span-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-emerald-600" />
+                สัดส่วนสินค้าตามหมวดหมู่
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#888888" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">รหัสสินค้า (Optional)</label>
-                    <input
-                      type="text"
-                      name="id"
-                      placeholder="Leave blank for auto-gen"
-                      value={currentProduct.id || ''}
-                      onChange={handleChange}
-                      disabled={isEditing}
-                      className="w-full bg-muted border border-border rounded-md p-2.5 text-muted-foreground cursor-not-allowed"
+                    <YAxis 
+                      stroke="#888888" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickFormatter={(value: number) => `${value}`} 
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">หมวดหมู่</label>
-                    <select
-                      name="categoryId"
-                      required
-                      value={currentProduct.categoryId || ''}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
-                    >
-                      <option value="">เลือกหมวดหมู่</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">ราคา (บาท)</label>
-                    <input
-                      type="number"
-                      name="price"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={currentProduct.price || 0}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderRadius: '8px' }}
+                      itemStyle={{ color: 'var(--foreground)' }}
                     />
-                  </div>
+                    <Bar dataKey="count" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-foreground mb-1.5">รายละเอียด</label>
-                    <textarea
-                      name="description"
-                      rows={3}
-                      value={currentProduct.description || ''}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
-                    />
-                  </div>
-
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-foreground mb-1.5">สรรพคุณ</label>
-                    <textarea
-                      name="properties"
-                      rows={2}
-                      value={currentProduct.properties || ''}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-border pt-6">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">จำนวนในสต็อก</label>
-                    <input
-                      type="number"
-                      name="stockQuantity"
-                      required
-                      min="0"
-                      value={currentProduct.stockQuantity || 0}
-                      onChange={handleChange}
-                      className="w-full bg-background border border-border rounded-md p-2.5 focus:ring-2 focus:ring-ring focus:border-input text-foreground transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center pt-8">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isControlled"
-                        checked={currentProduct.isControlled || false}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-primary focus:ring-ring border-border rounded"
-                      />
-                      <span className="ml-2 text-sm text-foreground">ยาควบคุม</span>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center pt-8">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="requiresPrescription"
-                        checked={currentProduct.requiresPrescription || false}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-primary focus:ring-ring border-border rounded"
-                      />
-                      <span className="ml-2 text-sm text-foreground">ต้องมีใบสั่งแพทย์</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-6 border-t border-border mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-                  >
-                    บันทึก
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สินค้า</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">หมวดหมู่</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">ราคา</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สถานะ</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">สต็อก</th>
-                  <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {products.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                      ไม่พบสินค้าในระบบ
-                    </td>
-                  </tr>
+          {/* Action Required List */}
+          <Card className="col-span-1 lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+                สินค้าต้องเติมสต็อก
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {lowStockItems.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">สต็อกสินค้าเพียงพอทุกรายการ</p>
                 ) : (
-                  products.map((product) => (
-                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-muted rounded-full overflow-hidden flex items-center justify-center border border-border">
-                            {product.image && product.image !== 'https://via.placeholder.com/150' ? (
-                              <img className="h-full w-full object-cover" src={product.image} alt="" />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">No Img</span>
-                            )}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-foreground">{product.name}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{product.id}</div>
-                          </div>
+                  lowStockItems.map((item: Product) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-background border flex items-center justify-center overflow-hidden">
+                           {item.image && item.image !== 'https://via.placeholder.com/150' ? (
+                              <img src={item.image} alt="" className="h-full w-full object-cover" />
+                           ) : (
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                          {categories.find(c => c.id === product.categoryId)?.name || product.categoryId || '-'}
+                        <div>
+                          <p className="text-sm font-medium leading-none">{item.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {categories.find(c => c.id === item.categoryId)?.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          เหลือ {item.stockQuantity}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
-                        ฿{product.price.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {product.isControlled && (
-                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 mr-2">
-                            ยาควบคุม
-                          </span>
-                        )}
-                        {product.requiresPrescription && (
-                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                            ใบสั่งแพทย์
-                          </span>
-                        )}
-                        {!product.isControlled && !product.requiresPrescription && (
-                          <span className="px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                            ทั่วไป
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <span className={product.stockQuantity < 10 ? 'text-red-500 font-bold' : 'text-foreground'}>
-                          {product.stockQuantity}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="text-primary hover:text-blue-700 mr-4 transition-colors"
-                        >
-                          แก้ไข
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          ลบ
-                        </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

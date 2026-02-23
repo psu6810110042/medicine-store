@@ -6,6 +6,10 @@ import {
     ParseFilePipe,
     MaxFileSizeValidator,
     FileTypeValidator,
+    Get,
+    Param,
+    Res,
+    NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StorageService } from './storage.service';
@@ -37,5 +41,34 @@ export class StorageController {
             file.originalname,
         );
         return { url };
+    }
+
+    @Get('file/:key')
+    async getFile(@Param('key') keyParam: string, @Res() res: any) {
+        try {
+            const key = decodeURIComponent(keyParam);
+            const { data, contentType } = await this.storageService.getObject(key);
+
+            if (!data || data.length === 0) {
+                throw new NotFoundException('File not found');
+            }
+
+            if (contentType) {
+                res.setHeader('content-type', contentType);
+            }
+            
+            // Add CORS headers for browser access
+            res.setHeader('access-control-allow-origin', '*');
+            res.setHeader('access-control-allow-methods', 'GET, HEAD, OPTIONS');
+            res.setHeader('access-control-allow-headers', 'Content-Type, Authorization');
+
+            res.send(data);
+        } catch (error) {
+            console.error('Failed to get file:', error);
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new Error(`Failed to retrieve file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 }
