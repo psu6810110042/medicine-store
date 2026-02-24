@@ -316,17 +316,7 @@ export default function AddProductPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">URL รูปภาพ</label>
-                  <Input
-                    name="image"
-                    value={formData.image}
-                    onChange={handleChange}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">คุณสมบัติเพิ่มเติม</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">สรรพคุณ</label>
                   <Input
                     name="properties"
                     value={formData.properties}

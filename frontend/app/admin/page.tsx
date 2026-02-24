@@ -9,7 +9,7 @@ import { categoryService } from '../services/categoryService';
 import { Product, Category } from '../types/product';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Package, AlertCircle, ShieldAlert, FileText, TrendingUp, ArrowRight } from 'lucide-react';
+import { Package, AlertCircle, ShieldAlert, FileText, TrendingUp, ArrowRight, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function AdminDashboardPage() {
@@ -63,6 +63,37 @@ export default function AdminDashboardPage() {
       .filter((p: Product) => p.stockQuantity < 10)
       .sort((a: Product, b: Product) => a.stockQuantity - b.stockQuantity)
       .slice(0, 5);
+  }, [products]);
+
+  // สินค้าที่ใกล้หมดอายุ (ภายใน 30 วัน)
+  const expiringItems = useMemo(() => {
+    const today = new Date();
+    const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    return products
+      .filter((p: Product) => {
+        if (!p.expiryDate) return false;
+        const expiryDate = new Date(p.expiryDate);
+        return expiryDate > today && expiryDate <= thirtyDaysLater;
+      })
+      .sort((a: Product, b: Product) => {
+        const dateA = a.expiryDate ? new Date(a.expiryDate).getTime() : 0;
+        const dateB = b.expiryDate ? new Date(b.expiryDate).getTime() : 0;
+        return dateA - dateB;
+      })
+      .slice(0, 5);
+  }, [products]);
+
+  // สถิติสินค้าใกล้หมดอายุ
+  const expiringCount = useMemo(() => {
+    const today = new Date();
+    const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    return products.filter((p: Product) => {
+      if (!p.expiryDate) return false;
+      const expiryDate = new Date(p.expiryDate);
+      return expiryDate > today && expiryDate <= thirtyDaysLater;
+    }).length;
   }, [products]);
 
   if (loading) {
@@ -124,15 +155,15 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Prescription Required (Replaces Expired) */}
+          {/* Expiring Soon - Alert in Red */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">ต้องมีใบสั่งแพทย์</CardTitle>
-              <FileText className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium">สินค้าใกล้หมดอายุ</CardTitle>
+              <AlertCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.prescriptionCount}</div>
-              <p className="text-xs text-muted-foreground">จำกัดการขาย</p>
+              <div className="text-2xl font-bold text-red-600">{expiringCount}</div>
+              <p className="text-xs text-muted-foreground">หมดอายุภายใน 30 วัน</p>
             </CardContent>
           </Card>
         </div>
@@ -220,6 +251,51 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Expiring Items Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-red-500" />
+              ⚠️ สินค้าใกล้หมดอายุ (ภายใน 30 วัน)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expiringItems.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">ไม่มีสินค้าใกล้หมดอายุ</p>
+              ) : (
+                expiringItems.map((item: Product) => (
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-900">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center overflow-hidden">
+                         {item.image && item.image !== 'https://via.placeholder.com/150' ? (
+                            <img src={item.image} alt="" className="h-full w-full object-cover" />
+                         ) : (
+                            <Calendar className="h-5 w-5 text-red-600 dark:text-red-400" />
+                         )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-900 dark:text-red-200">{item.name}</p>
+                        <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                          {categories.find(c => c.id === item.categoryId)?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-red-600 dark:text-red-400">
+                        หมดอายุ: {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('th-TH') : 'ไม่ระบุ'}
+                      </p>
+                      <p className="text-xs text-red-500 dark:text-red-300 mt-1">
+                        คงเหลือ: {item.stockQuantity} ชิ้น
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
