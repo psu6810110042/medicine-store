@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function ImageUpload() {
+export default function ImageUpload({ folder = 'products' }: { folder?: string }) {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -25,9 +25,11 @@ export default function ImageUpload() {
         formData.append('file', file);
 
         try {
-            const response = await fetch('http://localhost:3001/upload/image', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/upload/image/${folder}`, {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
             });
 
             if (!response.ok) {
