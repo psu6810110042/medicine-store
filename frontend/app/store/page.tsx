@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { productsService, Product, Category } from '@/services/products.service';
+import { productService } from '@/app/services/productService';
+import { Product } from '@/app/types/product';
+import { categoryService } from '@/app/services/categoryService';
+import { Category } from '@/app/types/product';
 
 function SearchForm() {
   const [search, setSearch] = useState('');
@@ -50,12 +53,12 @@ function StoreContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [productsData] = await Promise.all([
-          productsService.getAll(),
-          // productsService.getAllCategories() // TODO: Implement categories
+        const [productsData, categoriesData] = await Promise.all([
+          productService.getProducts(),
+          categoryService.getCategories()
         ]);
         setProducts(productsData);
-        // setCategories(categoriesData);
+        setCategories(categoriesData);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -81,13 +84,7 @@ function StoreContent() {
     return <Icon className="w-8 h-8" />;
   };
 
-  // Mock categories if not fetched
-  const displayCategories = categories.length > 0 ? categories : [
-    { id: '1', name: 'ยาสามัญ', icon: 'pill', count: 0 },
-    { id: '2', name: 'เวชภัณฑ์', icon: 'stethoscope', count: 0 },
-    { id: '3', name: 'อาหารเสริม', icon: 'leaf', count: 0 },
-    { id: '4', name: 'อุปกรณ์การแพทย์', icon: 'activity', count: 0 },
-  ];
+  const displayCategories = categories;
 
   const promotedProducts = products.slice(0, 4);
   const recommendedProducts = products.slice(4, 8);

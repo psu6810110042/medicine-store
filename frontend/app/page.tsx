@@ -20,9 +20,25 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Upload Verification Component */}
-        <section className="w-full max-w-md">
-          <ImageUpload />
+        {/* Upload Verification Components */}
+        <section className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex flex-col items-center gap-2 bg-card p-6 rounded-xl border border-border shadow-sm">
+            <h3 className="font-semibold text-foreground">Public Products</h3>
+            <p className="text-xs text-muted-foreground mb-2">Visible to everyone</p>
+            <ImageUpload folder="products" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2 bg-card p-6 rounded-xl border border-border shadow-sm">
+            <h3 className="font-semibold text-foreground">Prescriptions</h3>
+            <p className="text-xs text-muted-foreground mb-2">Visible to Owner/Admin/Pharmacist</p>
+            <ImageUpload folder="prescription" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2 bg-card p-6 rounded-xl border border-border shadow-sm">
+            <h3 className="font-semibold text-foreground">Payment Slips</h3>
+            <p className="text-xs text-muted-foreground mb-2">Visible to Owner/Admin</p>
+            <ImageUpload folder="payment-slips" />
+          </div>
         </section>
 
 

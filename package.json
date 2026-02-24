@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.995.0",
-    "lucide-react": "^0.575.0",
-    "recharts": "^3.7.0"
-  }
-}

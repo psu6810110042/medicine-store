@@ -5,10 +5,10 @@ import {
     PutObjectCommand,
     HeadBucketCommand,
     CreateBucketCommand,
-    PutBucketPolicyCommand,
-    GetObjectCommand,
     PutBucketCorsCommand,
+    GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -73,34 +73,15 @@ export class StorageService implements OnModuleInit {
             this.logger.warn(`Failed to apply CORS policy to "${this.bucketName}":`, corsError);
         }
 
-        const policy = {
-            Version: '2012-10-17',
-            Statement: [
-                {
-                    Sid: 'PublicReadGetObject',
-                    Effect: 'Allow',
-                    Principal: '*',
-                    Action: ['s3:GetObject', 's3:PutObject'],
-                    Resource: [`arn:aws:s3:::${this.bucketName}/*`],
-                },
-            ],
-        };
-
-        try {
-            await this.s3Client.send(
-                new PutBucketPolicyCommand({
-                    Bucket: this.bucketName,
-                    Policy: JSON.stringify(policy),
-                }),
-            );
-            this.logger.log(`Public read policy applied to bucket "${this.bucketName}".`);
-        } catch (policyError) {
-            this.logger.error(`Failed to apply bucket policy to "${this.bucketName}":`, policyError);
-        }
+        // Explicitly NOT adding a PublicRead policy. All non-proxied object access will be denied.
     }
 
-    async uploadImage(file: Buffer, filename: string): Promise<string> {
-        const key = `products/${Date.now()}-${filename}`;
+    async uploadImage(file: Buffer, filename: string, folder: string, ownerId?: string): Promise<string> {
+        let key = `${folder}/`;
+        if (ownerId && folder !== 'products') {
+            key += `${ownerId}/`;
+        }
+        key += `${Date.now()}-${filename}`;
 
         try {
             await this.s3Client.send(
@@ -112,11 +93,9 @@ export class StorageService implements OnModuleInit {
                 }),
             );
 
-            // Use public endpoint if available, otherwise use localhost
-            const publicEndpoint = this.configService.get<string>('S3_PUBLIC_ENDPOINT') || 'http://localhost:9000';
-            
-            // Return a direct S3 URL that can be accessed by browsers
-            return `${publicEndpoint}/${this.bucketName}/${encodeURIComponent(key)}`;
+            // Return a local proxy URL instead of direct S3 URL to route through the permission gateway
+            const backendUrl = this.configService.get<string>('BACKEND_URL') || 'http://localhost:3001';
+            return `${backendUrl}/upload/view/${encodeURIComponent(key)}`;
         } catch (error) {
             this.logger.error(`Failed to upload file "${filename}":`, error);
             throw error;
@@ -128,7 +107,6 @@ export class StorageService implements OnModuleInit {
             const command = new GetObjectCommand({ Bucket: this.bucketName, Key: key });
             const response = await this.s3Client.send(command);
 
-            // response.Body can be a stream (NodeJS.Readable) or a Uint8Array in some environments
             const body = response.Body as any;
 
             const buffer = await (async () => {
