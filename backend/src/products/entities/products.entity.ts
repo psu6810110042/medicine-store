@@ -1,5 +1,6 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Category } from '../../category/entities/category.entity';
+import { OrderItem } from '../../orders/entities/order-item.entity';
 
 @Entity('products')
 export class Product {
@@ -60,4 +61,7 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems: OrderItem[];
 }
