@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { Product, Category } from '../../types/product';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Plus, Edit2, Trash2, ChevronLeft, Search, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronLeft, Search } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
+import Image from 'next/image';
 
 export default function ProductsManagementPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,7 +51,7 @@ export default function ProductsManagementPage() {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || product.categoryId === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -62,7 +63,7 @@ export default function ProductsManagementPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
@@ -98,7 +99,7 @@ export default function ProductsManagementPage() {
                 />
               </div>
               <div className="w-full md:w-48">
-                <select 
+                <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
                   className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer"
@@ -142,9 +143,12 @@ export default function ProductsManagementPage() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             {product.image && product.image !== 'https://via.placeholder.com/150' ? (
-                              <img 
-                                src={product.image} 
+                              <Image
+                                src={product.image}
                                 alt={product.name}
+                                width={40}
+                                height={40}
+                                unoptimized
                                 className="h-10 w-10 rounded object-cover"
                               />
                             ) : (
@@ -165,11 +169,10 @@ export default function ProductsManagementPage() {
                           <span className="font-semibold">฿{Number(product.price).toFixed(2)}</span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            product.stockQuantity < 10 
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                              : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          }`}>
+                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-medium ${product.stockQuantity < 10
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            }`}>
                             {product.stockQuantity}
                           </span>
                         </td>

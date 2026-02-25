@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { productService } from '../../../../services/productService';
 import { categoryService } from '../../../../services/categoryService';
 import { Product, Category } from '../../../../types/product';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
+import { Card, CardContent } from '../../../../../components/ui/card';
 import { Button } from '../../../../../components/ui/button';
 import { ChevronLeft, Save, Plus } from 'lucide-react';
 import { Input } from '../../../../../components/ui/input';
@@ -90,7 +90,7 @@ export default function EditProductPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-2xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link href="/admin/products">
@@ -108,11 +108,11 @@ export default function EditProductPage() {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              
+
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ข้อมูลพื้นฐาน</h3>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">ชื่อสินค้า</label>
                   <Input
@@ -176,7 +176,7 @@ export default function EditProductPage() {
               {/* Stock Information */}
               <div className="space-y-4 border-t pt-6">
                 <h3 className="text-lg font-semibold">ข้อมูลสต็อก</h3>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">จำนวนสต็อก</label>
@@ -235,7 +235,7 @@ export default function EditProductPage() {
               {/* Regulations */}
               <div className="space-y-4 border-t pt-6">
                 <h3 className="text-lg font-semibold">รูปภาพ</h3>
-                
+
                 <ImageUpload
                   value={formData.image || ''}
                   onChange={(url: string) => setFormData(prev => ({ ...prev, image: url }))}
@@ -245,7 +245,7 @@ export default function EditProductPage() {
               {/* Regulations */}
               <div className="space-y-4 border-t pt-6">
                 <h3 className="text-lg font-semibold">ข้อบังคับการขาย</h3>
-                
+
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -278,7 +278,7 @@ export default function EditProductPage() {
               {/* Additional Information */}
               <div className="space-y-4 border-t pt-6">
                 <h3 className="text-lg font-semibold">ข้อมูลเพิ่มเติม</h3>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">สารประกอบหลัก</label>
                   <Input

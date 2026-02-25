@@ -9,8 +9,9 @@ import { categoryService } from '../services/categoryService';
 import { Product, Category } from '../types/product';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Package, AlertCircle, ShieldAlert, FileText, TrendingUp, ArrowRight, Calendar } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Package, AlertCircle, ShieldAlert, TrendingUp, ArrowRight, Calendar } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Image from 'next/image';
 
 export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -69,7 +70,7 @@ export default function AdminDashboardPage() {
   const expiringItems = useMemo(() => {
     const today = new Date();
     const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
+
     return products
       .filter((p: Product) => {
         if (!p.expiryDate) return false;
@@ -88,7 +89,7 @@ export default function AdminDashboardPage() {
   const expiringCount = useMemo(() => {
     const today = new Date();
     const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
+
     return products.filter((p: Product) => {
       if (!p.expiryDate) return false;
       const expiryDate = new Date(p.expiryDate);
@@ -103,7 +104,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -170,7 +171,7 @@ export default function AdminDashboardPage() {
 
         {/* Charts & Lists Section */}
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-          
+
           {/* Chart Section */}
           <Card className="col-span-1 lg:col-span-4">
             <CardHeader>
@@ -184,21 +185,21 @@ export default function AdminDashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
+                    <XAxis
+                      dataKey="name"
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                     />
-                    <YAxis 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tickFormatter={(value: number) => `${value}`} 
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value: number) => `${value}`}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderRadius: '8px' }}
                       itemStyle={{ color: 'var(--foreground)' }}
                     />
@@ -226,11 +227,11 @@ export default function AdminDashboardPage() {
                     <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-background border flex items-center justify-center overflow-hidden">
-                           {item.image && item.image !== 'https://via.placeholder.com/150' ? (
-                              <img src={item.image} alt="" className="h-full w-full object-cover" />
-                           ) : (
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                           )}
+                          {item.image && item.image !== 'https://via.placeholder.com/150' ? (
+                            <Image src={item.image} alt="" width={36} height={36} unoptimized className="h-full w-full object-cover" />
+                          ) : (
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-medium leading-none">{item.name}</p>
@@ -269,11 +270,11 @@ export default function AdminDashboardPage() {
                   <div key={item.id} className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-900">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center overflow-hidden">
-                         {item.image && item.image !== 'https://via.placeholder.com/150' ? (
-                            <img src={item.image} alt="" className="h-full w-full object-cover" />
-                         ) : (
-                            <Calendar className="h-5 w-5 text-red-600 dark:text-red-400" />
-                         )}
+                        {item.image && item.image !== 'https://via.placeholder.com/150' ? (
+                          <Image src={item.image} alt="" width={40} height={40} unoptimized className="h-full w-full object-cover" />
+                        ) : (
+                          <Calendar className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-red-900 dark:text-red-200">{item.name}</p>

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import ImageUpload from './components/ImageUpload';
-
-export default function Home() {
+import { Pill } from 'lucide-react'; export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background Gradients */}
@@ -132,13 +131,7 @@ export default function Home() {
             className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-emerald-500/50 hover:-translate-y-1"
           >
             <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-              {/* Pill Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m10.5 20.5-7-7a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z" />
-                <path d="m8.5 8.5 7 7" />
-              </svg>
+              <Pill className="w-6 h-6" />
             </div>
             <span className="font-semibold text-foreground">Pharmacy</span>
             <span className="text-xs text-muted-foreground">Role Pharmacy</span>

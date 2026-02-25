@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { productService } from '../../services/productService';
 import { Upload, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface ImageUploadProps {
   value: string;
@@ -19,7 +20,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
 
     try {
       setUploading(true);
-      
+
       // Show preview
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -73,10 +74,12 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       </div>
       {preview && (
         <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden border border-input">
-          <img
+          <Image
             src={preview}
             alt="preview"
-            className="w-full h-full object-cover"
+            fill
+            unoptimized
+            className="object-cover"
           />
         </div>
       )}

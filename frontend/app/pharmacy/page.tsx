@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import { ClipboardList, Package, Coins, Pill } from "lucide-react";
 
 type OrderStatus =
   | "PENDING_REVIEW"
@@ -92,24 +93,19 @@ export default function PharmacyPage() {
 
   // ✅ Refresh states (ใช้ให้ UI รีเฟรชได้ทุกฟังก์ชัน)
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refreshUI = () => setRefreshKey((k) => k + 1);
 
   const openDetail = (order: Order) => {
     setSelected(order);
     setDetailOpen(true);
-    refreshUI();
   };
 
   const closeDetail = () => {
     setDetailOpen(false);
     setSelected(null);
-    refreshUI();
   };
 
   const updateStatus = (id: string, next: OrderStatus) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: next } : o)));
-    refreshUI();
   };
 
   // ✅ ปุ่มรีเฟรช: โหลดข้อมูลใหม่ + ปิด modal + รีเฟรช UI
@@ -122,14 +118,12 @@ export default function PharmacyPage() {
     // mock reload data
     setOrders([...initialOrders]);
 
-    refreshUI();
-
     setTimeout(() => setRefreshing(false), 250);
   };
 
   const filtered = useMemo(
     () => orders.filter((o) => o.status === active),
-    [orders, active, refreshKey]
+    [orders, active]
   );
 
   const summary = useMemo(() => {
@@ -149,7 +143,7 @@ export default function PharmacyPage() {
       sales: orders.reduce((sum, o) => sum + o.total, 0),
       stockCount: 805,
     };
-  }, [orders, refreshKey]);
+  }, [orders]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -182,28 +176,28 @@ export default function PharmacyPage() {
             title="รอตรวจสอบ"
             value={summary.pending}
             accent="from-amber-500 to-orange-500"
-            icon={<IconClipboard />}
+            icon={<ClipboardList className="w-6 h-6" />}
             subtitle="คำสั่งซื้อที่ต้องตรวจ"
           />
           <StatCard
             title="คำสั่งซื้อทั้งหมด"
             value={summary.total}
             accent="from-emerald-500 to-teal-500"
-            icon={<IconBoxes />}
+            icon={<Package className="w-6 h-6" />}
             subtitle="รวมทุกสถานะ"
           />
           <StatCard
             title="ยอดขาย"
             value={`฿${summary.sales.toLocaleString()}`}
             accent="from-sky-500 to-indigo-500"
-            icon={<IconCoin />}
+            icon={<Coins className="w-6 h-6" />}
             subtitle="สรุปจากออเดอร์"
           />
           <StatCard
             title="สินค้าในสต็อก"
             value={summary.stockCount}
             accent="from-fuchsia-500 to-violet-500"
-            icon={<IconPill />}
+            icon={<Pill className="w-6 h-6" />}
             subtitle="พร้อมจำหน่าย"
           />
         </div>
@@ -214,7 +208,6 @@ export default function PharmacyPage() {
             active={active === "PENDING_REVIEW"}
             onClick={() => {
               setActive("PENDING_REVIEW");
-              refreshUI();
             }}
             label={statusLabel.PENDING_REVIEW}
             count={summary.pending}
@@ -223,7 +216,6 @@ export default function PharmacyPage() {
             active={active === "PRESCRIPTION"}
             onClick={() => {
               setActive("PRESCRIPTION");
-              refreshUI();
             }}
             label={statusLabel.PRESCRIPTION}
             count={summary.prescription}
@@ -232,7 +224,6 @@ export default function PharmacyPage() {
             active={active === "DONE"}
             onClick={() => {
               setActive("DONE");
-              refreshUI();
             }}
             label={statusLabel.DONE}
             count={summary.done}
@@ -241,7 +232,6 @@ export default function PharmacyPage() {
             active={active === "STOCK"}
             onClick={() => {
               setActive("STOCK");
-              refreshUI();
             }}
             label={statusLabel.STOCK}
             count={summary.stock}
@@ -286,12 +276,10 @@ export default function PharmacyPage() {
                   onApprove={() => {
                     updateStatus(order.id, "DONE");
                     setActive("DONE");
-                    refreshUI();
                   }}
                   onCancel={() => {
                     updateStatus(order.id, "STOCK");
                     setActive("STOCK");
-                    refreshUI();
                   }}
                 />
               ))
@@ -498,10 +486,10 @@ function OrderCard({
     order.status === "PENDING_REVIEW"
       ? "bg-amber-100 text-amber-700 border-amber-200"
       : order.status === "PRESCRIPTION"
-      ? "bg-sky-100 text-sky-700 border-sky-200"
-      : order.status === "PROCESSING"
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : "bg-slate-100 text-slate-700 border-slate-200";
+        ? "bg-sky-100 text-sky-700 border-sky-200"
+        : order.status === "PROCESSING"
+          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+          : "bg-slate-100 text-slate-700 border-slate-200";
 
   const isFinished = order.status === "DONE" || order.status === "STOCK";
 
@@ -673,71 +661,3 @@ function Modal({
 }
 
 /* ---------------- Icons ---------------- */
-
-function IconClipboard() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M9 5h6M9 3h6a2 2 0 0 1 2 2v1H7V5a2 2 0 0 1 2-2Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7 6h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M9 11h6M9 15h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBoxes() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M3.3 7 12 12l8.7-5" stroke="currentColor" strokeWidth="2" />
-      <path d="M12 22V12" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function IconCoin() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 2C7.58 2 4 3.79 4 6s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M4 6v6c0 2.21 3.58 4 8 4s8-1.79 8-4V6"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M4 12v6c0 2.21 3.58 4 8 4s8-1.79 8-4v-6"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function IconPill() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="m10.5 20.5-7-7a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="m8.5 8.5 7 7" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}

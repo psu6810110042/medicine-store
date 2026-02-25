@@ -70,7 +70,7 @@ function StoreContent() {
   }, []);
 
   const getIconComponent = (iconName: string) => {
-    const icons: { [key: string]: any } = {
+    const icons: Record<string, React.ElementType> = {
       pill: Pill,
       syringe: Syringe,
       'heart-pulse': HeartPulse,
@@ -125,7 +125,7 @@ function StoreContent() {
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {displayCategories.map((category: any) => (
+            {displayCategories.map((category: Category) => (
               <Card
                 key={category.id}
                 className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 bg-white/60 backdrop-blur-md border-white/20"
