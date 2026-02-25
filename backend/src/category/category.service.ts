@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CategoryService {
@@ -13,7 +14,11 @@ export class CategoryService {
     ) { }
 
     async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-        const newCategory = this.categoryRepository.create(createCategoryDto);
+        const newCategory = this.categoryRepository.create({
+            id: createCategoryDto.id || randomUUID(),
+            name: createCategoryDto.name,
+            icon: createCategoryDto.icon || 'folder',
+        });
         return this.categoryRepository.save(newCategory);
     }
 

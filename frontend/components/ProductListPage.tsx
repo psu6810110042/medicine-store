@@ -22,8 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Product } from '@/app/types/product';
-import { fetchProducts, FetchProductsParams } from '@/services/product';
-import { categories } from '@/data/categories';
+import { productService, FetchProductsParams } from '@/app/services/productService';
+import { categoryService } from '@/app/services/categoryService';
 
 // Simple debounce function
 function useDebounce<T>(value: T, delay: number): T {
@@ -47,6 +47,7 @@ export default function ProductListPage() {
     const initialCategory = searchParams.get('category') || 'all-categories';
 
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Filter states
@@ -91,8 +92,12 @@ export default function ProductListPage() {
                 params.sortOrder = 'ASC';
             }
 
-            const data = await fetchProducts(params);
+            const [data, categoryData] = await Promise.all([
+                productService.getProducts(params),
+                categoryService.getCategories()
+            ]);
             setProducts(data);
+            setCategories(categoryData);
         } catch (error) {
             console.error("Failed to load products", error);
             toast.error("Failed to load products");

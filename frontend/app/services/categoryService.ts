@@ -9,4 +9,11 @@ export const categoryService = {
     getCategory: async (id: string): Promise<Category> => {
         return fetchApi<Category>(`/category/${id}`);
     },
+
+    createCategory: async (name: string, description?: string): Promise<Category> => {
+        return fetchApi<Category>('/category', {
+            method: 'POST',
+            body: JSON.stringify({ name, description }),
+        });
+    },
 };
