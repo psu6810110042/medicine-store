@@ -1,18 +1,27 @@
 {
-    "name": "Medicine-Store",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "dev-container",
-    "workspaceFolder": "/workspace",
-    "shutdownAction": "stopCompose",
-    "remoteUser": "1000",
-    "updateRemoteUserUID": true,
-    "forwardPorts": [
-        3000,
-        3001,
-        5432,
-        6379,
-        9000,
-        9001
-    ],
-    "postStartCommand": "socat TCP-LISTEN:9000,fork TCP:rustfs:9000 & socat TCP-LISTEN:9001,fork TCP:rustfs:9001"
+  "name": "Medicine-Store",
+
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+
+  "service": "dev-container",
+
+  "workspaceFolder": "/workspace",
+
+  "shutdownAction": "stopCompose",
+
+  "remoteUser": "1000",
+  "updateRemoteUserUID": true,
+
+  "forwardPorts": [
+    3000,
+    3001,
+    5432,
+    6379,
+    9000,
+    9001
+  ],
+
+  "postStartCommand": "socat TCP-LISTEN:9000,fork TCP:rustfs:9000 & socat TCP-LISTEN:9001,fork TCP:rustfs:9001"
 }

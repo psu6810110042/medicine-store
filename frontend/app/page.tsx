@@ -25,7 +25,6 @@ export default function Home() {
           <ImageUpload />
         </section>
 
-
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full mt-8">
           {/* Home Route */}
           <Link
@@ -109,6 +108,24 @@ export default function Home() {
             </div>
             <span className="font-semibold text-foreground">Admin</span>
             <span className="text-xs text-muted-foreground">System Config</span>
+          </Link>
+
+          {/* ✅ Pharmacy Route (NEW) */}
+          <Link
+            href="/pharmacy"
+            className="group relative flex flex-col items-center justify-center gap-2 rounded-xl bg-card p-8 border border-border shadow-sm transition-all hover:shadow-md hover:border-emerald-500/50 hover:-translate-y-1"
+          >
+            <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              {/* Pill Icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m10.5 20.5-7-7a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z" />
+                <path d="m8.5 8.5 7 7" />
+              </svg>
+            </div>
+            <span className="font-semibold text-foreground">Pharmacy</span>
+            <span className="text-xs text-muted-foreground">Role Pharmacy</span>
           </Link>
 
           {/* Not Found Route */}
