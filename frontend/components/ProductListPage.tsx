@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Product } from '@/app/types/product';
 import { productService, FetchProductsParams } from '@/app/services/productService';
 import { categoryService } from '@/app/services/categoryService';
+import Image from 'next/image';
 
 // Simple debounce function
 function useDebounce<T>(value: T, delay: number): T {
@@ -327,10 +328,13 @@ export default function ProductListPage() {
                                         onClick={() => router.push(`/products/${product.id}`)}
                                     >
                                         <div className="relative bg-gray-100 h-48">
-                                            <img
-                                                src={product.image}
+                                            <Image
+                                                src={product.image || 'https://via.placeholder.com/150'}
                                                 alt={product.name}
-                                                className="w-full h-full object-contain p-4"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                unoptimized
+                                                className="object-contain p-4"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                     const parent = (e.target as HTMLImageElement).parentElement;

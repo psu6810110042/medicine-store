@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface User {
     id: string;
@@ -32,9 +32,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 AuthContext.displayName = 'AuthContext';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState<User | null>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const savedUser = localStorage.getItem('currentUser');
+                if (savedUser) return JSON.parse(savedUser);
+            } catch (error) {
+                console.error('Error loading user from localStorage:', error);
+            }
+        }
+        return null;
+    });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const login = async (email: string, password: string): Promise<boolean> => {
         // In a real app, this would call the API.
         // For now, we'll let the Login page handle the API call and just update the context.
@@ -45,20 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         localStorage.removeItem('currentUser');
     };
-
-    // Load user from localStorage on mount
-    useEffect(() => {
-        try {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                setUser(JSON.parse(savedUser));
-            }
-        } catch (error) {
-            console.error('Error loading user from localStorage:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
 
     return (
         <AuthContext.Provider value={{ user, login, logout, setUser }}>
