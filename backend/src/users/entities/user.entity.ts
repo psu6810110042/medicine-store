@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Order } from '../../orders/entities/order.entity';
+import { Cart } from '../../cart/entities/cart.entity';
 
 export enum UserRole {
   CUSTOMER = 'customer',
@@ -61,4 +63,7 @@ export class User {
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
+
+  @OneToOne(() => Cart, (cart) => cart.user)
+  cart: Cart;
 }

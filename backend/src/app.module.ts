@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 
 import { LoggingMiddleware } from './middleware/logging.middleware';
 import { StorageModule } from './storage/storage.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -28,7 +29,6 @@ import { StorageModule } from './storage/storage.module';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-        // entities: [__dirname + '/**/*.entity{.ts,.js}'],
         autoLoadEntities: true,
         synchronize: true, // Auto-create tables (dev only)
       }),
@@ -40,6 +40,7 @@ import { StorageModule } from './storage/storage.module';
     CategoryModule,
     StorageModule,
     OrdersModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],
