@@ -1,20 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap } from 'lucide-react';
+import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+// Use local Product type or import from shared types when available
+import { productService } from '@/app/services/productService';
 import { Product } from '@/app/types/product';
-import { fetchProducts } from '@/services/product';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { cart, updateQuantity, removeFromCart, getTotalItems } = useCart();
+  const { user, logout } = useAuth();
   const [cartProducts, setCartProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -25,7 +28,7 @@ export default function Navbar() {
         return;
       }
       try {
-        const fetchedProducts = await fetchProducts({ ids });
+        const fetchedProducts = await productService.getProducts({}); // Or however we fetch it
         setCartProducts(fetchedProducts);
       } catch (error) {
         console.error('Failed to load cart products in navbar:', error);
@@ -58,7 +61,31 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3">
+            {user ? (
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                ออกจากระบบ
+              </button>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
+                  เข้าสู่ระบบ
+                </Link>
+                <Link href="/register" className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full text-sm font-medium transition-all shadow-sm">
+                  สมัครสมาชิก
+                </Link>
+              </>
+            )}
+          </div>
+          <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
           {isProductsPage ? (
             /* Cart Drawer from Navbar */
             <Sheet>
@@ -78,6 +105,7 @@ export default function Navbar() {
                   <SheetTitle className="flex items-center gap-2">
                     <ShoppingCart className="w-5 h-5" /> ตะกร้าสินค้าของคุณ ({getTotalItems()} ชิ้น)
                   </SheetTitle>
+                  <SheetDescription className="hidden">ตะกร้าสินค้าของคุณ</SheetDescription>
                 </SheetHeader>
 
                 <div className="flex-1 mt-6 space-y-4 overflow-y-auto pr-2">
@@ -139,7 +167,7 @@ export default function Navbar() {
                         <span className="text-primary text-2xl">฿{getTotalPrice().toLocaleString()}</span>
                       </div>
                     </div>
-                    <Button className="w-full text-lg h-14 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity shadow-md" onClick={() => router.push('/checkout')}>
+                    <Button className="w-full text-lg h-14 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity shadow-md" onClick={() => router.push('/cart')}>
                       ดำเนินการชำระเงิน <Zap className="w-5 h-5 ml-2 fill-current" />
                     </Button>
                   </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import ImageUpload from '../_components/ImageUpload';
+import ImageUpload from '@/app/components/ImageUpload';
 
 export default function Home() {
   return (

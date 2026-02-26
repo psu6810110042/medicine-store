@@ -16,7 +16,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -61,7 +61,7 @@ export default function ProductListPage() {
   const [showControlled, setShowControlled] = useState(false);
   const [sortBy, setSortBy] = useState('name');
 
-  const { cart, addToCart, updateQuantity, removeFromCart, getTotalItems, getTotalPrice } = useCart();
+  const { cart, addToCart, updateQuantity, removeFromCart, getTotalItems } = useCart();
   const { user } = useAuth();
 
   const loadProducts = useCallback(async () => {
@@ -274,6 +274,7 @@ export default function ProductListPage() {
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>ตัวกรองสินค้า</SheetTitle>
+                    <SheetDescription className="hidden">ตัวกรองสินค้า</SheetDescription>
                   </SheetHeader>
                   <div className="mt-6">
                     <FilterContent />

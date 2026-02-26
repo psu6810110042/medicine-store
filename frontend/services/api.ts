@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
+    credentials: options.credentials || 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,

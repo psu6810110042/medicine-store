@@ -9,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { productsService, Product, Category } from '@/services/products.service';
+import { productService } from '@/app/services/productService';
+import { Product, Category } from '@/app/types/product';
 import { useAuth } from '@/contexts/AuthContext';
 
 function SearchForm() {
@@ -55,8 +56,8 @@ function StoreContent() {
       setLoading(true);
       try {
         const [productsData] = await Promise.all([
-          productsService.getAll(),
-          // productsService.getAllCategories() // TODO: Implement categories
+          productService.getProducts(),
+          // productService.getAllCategories() // TODO: Implement categories
         ]);
         setProducts(productsData);
         // setCategories(categoriesData);
@@ -286,13 +287,14 @@ function StoreContent() {
           </div>
         </section>
       </div>
-      );
+    </div>
+  );
 }
 
-      export default function StorePage() {
+export default function StorePage() {
   return (
-      <Suspense fallback={<div>Loading...</div>}>
-        <StoreContent />
-      </Suspense>
-      );
+    <Suspense fallback={<div>Loading...</div>}>
+      <StoreContent />
+    </Suspense>
+  );
 }
