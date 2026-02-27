@@ -15,8 +15,8 @@ import { toast } from 'sonner';
 export default function ProductDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { addToCart } = useCart();
-    const { user } = useAuth();
+    const { cart, addToCart } = useCart();
+    const { user, setIsLoginModalOpen } = useAuth();
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function ProductDetailPage() {
     const handleAddToCart = () => {
         if (!user) {
             toast.error('กรุณาเข้าสู่ระบบก่อนสั่งซื้อสินค้า');
-            router.push('/login');
+            setIsLoginModalOpen(true);
             return;
         }
         if (user.role !== 'customer') {
@@ -58,15 +58,45 @@ export default function ProductDetailPage() {
             return;
         }
         if (product) {
-            addToCart(product, 1);
+            const existingItem = cart.find(item => item.productId === product.id);
+            const currentQty = existingItem ? existingItem.quantity : 0;
+
+            if (currentQty + 1 > product.stockQuantity) {
+                toast.error('สินค้าในตะกร้าถึงจำนวนสูงสุดที่มีในสต็อกแล้ว');
+                return;
+            }
+
+            addToCart(product.id, 1);
             toast.success(`เพิ่ม ${product.name} ลงตะกร้าแล้ว`);
         }
     };
 
     const handleBuyNow = () => {
-        handleAddToCart();
-        if (product && product.stockQuantity > 0 && product.inStock) {
-            router.push('/store');
+        if (!user) {
+            toast.error('กรุณาเข้าสู่ระบบก่อนสั่งซื้อสินค้า');
+            setIsLoginModalOpen(true);
+            return;
+        }
+        if (user.role !== 'customer') {
+            toast.error('เฉพาะลูกค้าเท่านั้นที่สามารถสั่งซื้อสินค้าได้');
+            return;
+        }
+
+        if (product) {
+            const existingItem = cart.find(item => item.productId === product.id);
+            const currentQty = existingItem ? existingItem.quantity : 0;
+
+            if (currentQty + 1 > product.stockQuantity) {
+                if (product.stockQuantity > 0 && product.inStock) {
+                    router.push('/store');
+                }
+                return;
+            }
+
+            addToCart(product.id, 1);
+            if (product.stockQuantity > 0 && product.inStock) {
+                router.push('/store');
+            }
         }
     };
 

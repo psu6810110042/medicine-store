@@ -7,14 +7,14 @@ import { User } from './entities/user.entity';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+    constructor(private readonly usersService: UsersService) { }
 
-  @UseGuards(AuthenticatedGuard)
-  @Patch('me')
-  async updateProfile(
-    @Request() req: ExpressRequest,
-    @Body() updateProfileDto: UpdateProfileDto,
-  ): Promise<User> {
-    return this.usersService.update((req.user as User)!.id, updateProfileDto);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Patch('me')
+    async updateProfile(
+        @Request() req: ExpressRequest,
+        @Body() updateProfileDto: UpdateProfileDto,
+    ): Promise<User> {
+        return this.usersService.update((req.user as User)!.id, updateProfileDto);
+    }
 }

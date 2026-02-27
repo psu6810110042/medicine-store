@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 
 import { LoggingMiddleware } from './middleware/logging.middleware';
 import { StorageModule } from './storage/storage.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { StorageModule } from './storage/storage.module';
         CategoryModule,
         StorageModule,
         OrdersModule,
+        CartModule,
     ],
     controllers: [AppController],
     providers: [AppService, SeedService],

@@ -6,55 +6,55 @@ import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
 
 @Controller('cart')
 export class CartController {
-  constructor(private readonly cartService: CartService) { }
+    constructor(private readonly cartService: CartService) { }
 
-  @UseGuards(AuthenticatedGuard)
-  @Get()
-  getCart(@Request() req) {
-    return this.cartService.getCart(req.user.id);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Get()
+    getCart(@Request() req) {
+        return this.cartService.getCart(req.user.id);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Post()
-  addToCart(@Request() req, @Body() createCartItemDto: CreateCartItemDto) {
-    return this.cartService.addToCart(req.user.id, createCartItemDto);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Post()
+    addToCart(@Request() req, @Body() createCartItemDto: CreateCartItemDto) {
+        return this.cartService.addToCart(req.user.id, createCartItemDto);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Post('sync')
-  syncCart(@Request() req, @Body() items: { productId: string; quantity: number }[]) {
-    return this.cartService.syncCart(req.user.id, items);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Post('sync')
+    syncCart(@Request() req, @Body() items: { productId: string; quantity: number }[]) {
+        return this.cartService.syncCart(req.user.id, items);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Patch('items/:itemId')
-  updateQuantity(
-    @Request() req,
-    @Param('itemId') itemId: string,
-    @Body() updateCartItemDto: UpdateCartItemDto,
-  ) {
-    return this.cartService.updateQuantity(req.user.id, itemId, updateCartItemDto);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Patch('items/:itemId')
+    updateQuantity(
+        @Request() req,
+        @Param('itemId') itemId: string,
+        @Body() updateCartItemDto: UpdateCartItemDto,
+    ) {
+        return this.cartService.updateQuantity(req.user.id, itemId, updateCartItemDto);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Delete('items/:itemId')
-  removeFromCart(@Request() req, @Param('itemId') itemId: string) {
-    return this.cartService.removeFromCart(req.user.id, itemId);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Delete('items/:itemId')
+    removeFromCart(@Request() req, @Param('itemId') itemId: string) {
+        return this.cartService.removeFromCart(req.user.id, itemId);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Delete('remove-by-product/:productId')
-  removeByProductId(@Request() req, @Param('productId') productId: string) {
-    return this.cartService.removeByProductId(req.user.id, productId);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Delete('remove-by-product/:productId')
+    removeByProductId(@Request() req, @Param('productId') productId: string) {
+        return this.cartService.removeByProductId(req.user.id, productId);
+    }
 
-  @UseGuards(AuthenticatedGuard)
-  @Put('update-quantity/:productId')
-  updateQuantityByProductId(
-    @Request() req,
-    @Param('productId') productId: string,
-    @Body() body: { quantity: number },
-  ) {
-    return this.cartService.updateQuantityByProductId(req.user.id, productId, body.quantity);
-  }
+    @UseGuards(AuthenticatedGuard)
+    @Put('update-quantity/:productId')
+    updateQuantityByProductId(
+        @Request() req,
+        @Param('productId') productId: string,
+        @Body() body: { quantity: number },
+    ) {
+        return this.cartService.updateQuantityByProductId(req.user.id, productId, body.quantity);
+    }
 }

@@ -8,6 +8,8 @@ import { Repository, DataSource } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Product } from '../products/entities/products.entity';
+import { Cart } from '../cart/entities/cart.entity';
+import { CartItem } from '../cart/entities/cart-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -31,10 +33,22 @@ export class OrdersService {
             let totalAmount = 0;
             const orderItemsToSave: OrderItem[] = [];
 
+            // Get user's cart to clean up ordered items
+            const cart = await queryRunner.manager.findOne(Cart, {
+                where: { user: { id: userId } }
+            });
+
             for (const itemDto of createOrderDto.items) {
                 const product = await queryRunner.manager.findOne(Product, {
                     where: { id: itemDto.productId },
                 });
+
+                if (cart) {
+                    await queryRunner.manager.delete(CartItem, {
+                        cart: { id: cart.id },
+                        product: { id: itemDto.productId }
+                    });
+                }
 
                 if (!product) {
                     throw new NotFoundException(`Product ${itemDto.productId} not found`);

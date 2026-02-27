@@ -5,22 +5,22 @@ import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class SessionSerializer extends PassportSerializer {
-  constructor(private readonly usersService: UsersService) {
-    super();
-  }
+    constructor(private readonly usersService: UsersService) {
+        super();
+    }
 
-  serializeUser(
-    user: User,
-    done: (err: Error | null, payload: string) => void,
-  ): void {
-    done(null, user.id);
-  }
+    serializeUser(
+        user: User,
+        done: (err: Error | null, payload: string) => void,
+    ): void {
+        done(null, user.id);
+    }
 
-  async deserializeUser(
-    userId: string,
-    done: (err: Error | null, payload: User | null) => void,
-  ): Promise<void> {
-    const user = await this.usersService.findById(userId);
-    done(null, user);
-  }
+    async deserializeUser(
+        userId: string,
+        done: (err: Error | null, payload: User | null) => void,
+    ): Promise<void> {
+        const user = await this.usersService.findById(userId);
+        done(null, user);
+    }
 }

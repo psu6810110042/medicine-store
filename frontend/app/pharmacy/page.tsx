@@ -93,7 +93,7 @@ export default function PharmacyPage() {
             delivered,
             cancelled,
             total: orders.length,
-            sales: orders.reduce((sum, o) => sum + o.totalAmount, 0),
+            sales: orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
             stockCount: 805, // Can be updated if needed
         };
     }, [orders]);
@@ -321,7 +321,7 @@ export default function PharmacyPage() {
                                                 <span className="text-slate-500 font-normal">x{it.quantity}</span>
                                             </p>
                                         </div>
-                                        <p className="text-sm font-bold text-slate-800">฿{it.price}</p>
+                                        <p className="text-sm font-bold text-slate-800">฿{it.priceAtTime * it.quantity}</p>
                                     </div>
                                 ))}
                             </div>
@@ -472,7 +472,7 @@ function OrderCard({
                                         {it.product?.name || "สินค้า"} <span className="text-slate-500 font-normal">x{it.quantity}</span>
                                     </p>
                                 </div>
-                                <p className="text-sm font-bold text-slate-800">฿{it.price}</p>
+                                <p className="text-sm font-bold text-slate-800">฿{it.priceAtTime * it.quantity}</p>
                             </div>
                         ))}
                     </div>
