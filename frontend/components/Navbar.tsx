@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X } from 'lucide-react';
+import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Pill } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
@@ -149,6 +149,14 @@ export default function Navbar() {
                                 </>
                             )}
                         </div>
+                        <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                        <Link
+                            href="/prescription"
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 rounded-full transition-all"
+                        >
+                            <Pill className="w-4 h-4" />
+                            สั่งยา
+                        </Link>
                         <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
                         {isProductsPage ? (
                             /* Cart Drawer from Navbar */

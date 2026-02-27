@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, SlidersHorizontal, X, ShoppingCart, Zap, Trash2, Plus, Minus } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ShoppingCart, Zap, Trash2, Plus, Minus, Pill } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -413,6 +413,18 @@ export default function ProductListPage() {
                                                 >
                                                     <ShoppingCart className="w-4 h-4 mr-2" />
                                                     ใส่ตะกร้า
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full text-primary hover:bg-primary/10"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.push('/prescription');
+                                                    }}
+                                                >
+                                                    <Pill className="w-4 h-4 mr-2" />
+                                                    ใบสั่งยา
                                                 </Button>
                                             </div>
                                         </CardContent>
