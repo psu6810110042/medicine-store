@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { SeedService } from './seed.service';
 import { CategoryModule } from './category/category.module';
+import { OrdersModule } from './orders/orders.module';
 
 import { LoggingMiddleware } from './middleware/logging.middleware';
 import { StorageModule } from './storage/storage.module';
@@ -38,6 +39,7 @@ import { StorageModule } from './storage/storage.module';
         ProductsModule,
         CategoryModule,
         StorageModule,
+        OrdersModule,
     ],
     controllers: [AppController],
     providers: [AppService, SeedService],
