@@ -1,53 +1,135 @@
 "use client";
 
-import React, { useState } from "react";
-import { Upload, FileCheck, Download, Trash2 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Upload, FileCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function PrescriptionPage() {
+    const { user, setIsLoginModalOpen } = useAuth();
     const [prescriptionFiles, setPrescriptionFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+    const [dragging, setDragging] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const addFiles = (files: FileList | File[]) => {
+        const arr = Array.from(files);
+        const valid = arr.filter((f) => {
+            if (!f.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+                toast.error(`${f.name}: รองรับเฉพาะ JPG, PNG หรือ WEBP`);
+                return false;
+            }
+            if (f.size > 5 * 1024 * 1024) {
+                toast.error(`${f.name}: ขนาดไฟล์เกิน 5MB`);
+                return false;
+            }
+            return true;
+        });
+        if (valid.length > 0) {
+            setPrescriptionFiles((prev) => [...prev, ...valid]);
+            toast.success(`เพิ่ม ${valid.length} ไฟล์`);
+        }
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const files = Array.from(e.target.files);
-            setPrescriptionFiles(prev => [...prev, ...files]);
-            toast.success(`อัปโหลด ${files.length} ไฟล์แล้ว`);
+            addFiles(e.target.files);
+            e.target.value = "";
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragging(false);
+        if (e.dataTransfer.files) {
+            addFiles(e.dataTransfer.files);
         }
     };
 
     const handleRemoveFile = (index: number) => {
-        setPrescriptionFiles(prev => prev.filter((_, i) => i !== index));
-        toast.success("ลบไฟล์แล้ว");
+        setPrescriptionFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
     const handleClear = () => {
         setPrescriptionFiles([]);
-        toast.success("ล้างไฟล์แล้ว");
+        setUploadedUrls([]);
     };
 
     const handleUpload = async () => {
+        if (!user) {
+            toast.error("กรุณาเข้าสู่ระบบก่อนอัปโหลดใบสั่งยา");
+            setIsLoginModalOpen(true);
+            return;
+        }
+        if (user.role !== "customer") {
+            toast.error("เฉพาะลูกค้าเท่านั้นที่สามารถอัปโหลดใบสั่งยาได้");
+            return;
+        }
         if (prescriptionFiles.length === 0) {
             toast.error("กรุณาเลือกไฟล์ใบสั่งยา");
             return;
         }
 
         setUploading(true);
+        const createdOrderIds: string[] = [];
+
         try {
-            // Here you would typically upload the files to your backend
-            // For now, just simulate a successful upload
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            toast.success(`อัปโหลด ${prescriptionFiles.length} ใบสั่งยาแล้ว`);
+            for (const file of prescriptionFiles) {
+                // 1. Upload the image
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const uploadRes = await fetch(`${API_URL}/upload/image/prescription`, {
+                    method: "POST",
+                    body: formData,
+                    credentials: "include",
+                });
+
+                if (!uploadRes.ok) {
+                    const err = await uploadRes.json().catch(() => ({}));
+                    throw new Error(err?.message || `ไม่สามารถอัปโหลด ${file.name}`);
+                }
+
+                const { url } = await uploadRes.json();
+
+                // 2. Create a PRESCRIPTION-status order with the full image URL
+                // (same pattern as ImageUpload.tsx — store the full proxy URL)
+                const orderRes = await fetch(`${API_URL}/orders`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        items: [],
+                        prescriptionImage: url,
+                    }),
+                });
+
+                if (!orderRes.ok) {
+                    const err = await orderRes.json().catch(() => ({}));
+                    throw new Error(err?.message || "ไม่สามารถสร้างคำสั่งซื้อสำหรับใบสั่งยา");
+                }
+
+                const order = await orderRes.json();
+                createdOrderIds.push(order.id);
+            }
+
+            setUploadedUrls(createdOrderIds); // reuse state to track success
             setPrescriptionFiles([]);
+            toast.success(
+                `ส่งใบสั่งยา ${createdOrderIds.length} ใบสำเร็จ! เภสัชกรจะตรวจสอบและดำเนินการให้`
+            );
         } catch (error) {
-            toast.error("ไม่สามารถอัปโหลดไฟล์ได้");
-            console.error(error);
+            toast.error(error instanceof Error ? error.message : "ไม่สามารถอัปโหลดไฟล์ได้");
         } finally {
             setUploading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -56,9 +138,26 @@ export default function PrescriptionPage() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold mb-2">อัปโหลดใบสั่งยา</h1>
                     <p className="text-gray-600">
-                        อัปโหลดใบสั่งยาของคุณสำหรับยาที่ต้องการใบสั่งแพทย์
+                        อัปโหลดใบสั่งยาของคุณ เภสัชกรจะตรวจสอบและจัดเตรียมยาให้คุณ
                     </p>
                 </div>
+
+                {/* Auth warning */}
+                {!user && (
+                    <Card className="mb-6 border-amber-200 bg-amber-50">
+                        <CardContent className="pt-4">
+                            <p className="text-amber-800 text-sm">
+                                คุณต้องเข้าสู่ระบบก่อนจึงจะสามารถอัปโหลดใบสั่งยาได้{" "}
+                                <button
+                                    className="font-semibold underline"
+                                    onClick={() => setIsLoginModalOpen(true)}
+                                >
+                                    เข้าสู่ระบบ
+                                </button>
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Upload Card */}
                 <Card className="mb-6">
@@ -70,27 +169,34 @@ export default function PrescriptionPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {/* File Input */}
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
+                            {/* Drag & Drop Zone */}
+                            <div
+                                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${dragging
+                                    ? "border-primary bg-primary/5"
+                                    : "border-gray-300 hover:border-primary"
+                                    }`}
+                                onClick={() => inputRef.current?.click()}
+                                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                                onDragLeave={() => setDragging(false)}
+                                onDrop={handleDrop}
+                            >
                                 <input
+                                    ref={inputRef}
                                     type="file"
                                     multiple
-                                    accept="image/*,.pdf"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp"
                                     onChange={handleFileChange}
                                     className="hidden"
-                                    id="file-input"
                                 />
-                                <label htmlFor="file-input" className="cursor-pointer block">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Upload className="w-8 h-8 text-gray-400" />
-                                        <p className="font-semibold text-gray-700">
-                                            คลิกเพื่ออัปโหลด หรือลากไฟล์มาวาง
-                                        </p>
-                                        <p className="text-sm text-gray-500">
-                                            JPG, PNG หรือ PDF (สูงสุด 10MB ต่อไฟล์)
-                                        </p>
-                                    </div>
-                                </label>
+                                <div className="flex flex-col items-center gap-2">
+                                    <Upload className="w-8 h-8 text-gray-400" />
+                                    <p className="font-semibold text-gray-700">
+                                        คลิกเพื่ออัปโหลด หรือลากไฟล์มาวาง
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                        JPG, PNG หรือ WEBP (สูงสุด 5MB ต่อไฟล์)
+                                    </p>
+                                </div>
                             </div>
 
                             {/* File List */}
@@ -106,8 +212,13 @@ export default function PrescriptionPage() {
                                                 key={index}
                                                 className="flex items-center justify-between bg-white p-3 rounded border border-gray-200"
                                             >
-                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                    <FileCheck className="w-5 h-5 text-primary flex-shrink-0" />
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    {/* Preview thumbnail */}
+                                                    <img
+                                                        src={URL.createObjectURL(file)}
+                                                        alt={file.name}
+                                                        className="w-10 h-10 object-cover rounded border flex-shrink-0"
+                                                    />
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-medium text-gray-800 truncate">
                                                             {file.name}
@@ -129,6 +240,18 @@ export default function PrescriptionPage() {
                                 </div>
                             )}
 
+                            {/* Success list */}
+                            {uploadedUrls.length > 0 && (
+                                <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+                                    <p className="text-sm font-semibold text-green-700 mb-2">
+                                        อัปโหลดสำเร็จ {uploadedUrls.length} ใบ
+                                    </p>
+                                    <p className="text-xs text-green-600">
+                                        เภสัชกรจะตรวจสอบใบสั่งยาของคุณและดำเนินการภายใน 1-2 วันทำการ
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Action Buttons */}
                             <div className="flex gap-2 pt-4">
                                 <Button
@@ -137,14 +260,10 @@ export default function PrescriptionPage() {
                                     className="flex-1 bg-primary hover:bg-primary/90"
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
-                                    {uploading ? "กำลังอัปโหลด..." : "อัปโหลดใบสั่งยา"}
+                                    {uploading ? "กำลังอัปโหลด..." : "ส่งใบสั่งยา"}
                                 </Button>
-                                {prescriptionFiles.length > 0 && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={handleClear}
-                                        disabled={uploading}
-                                    >
+                                {(prescriptionFiles.length > 0 || uploadedUrls.length > 0) && (
+                                    <Button variant="outline" onClick={handleClear} disabled={uploading}>
                                         ล้าง
                                     </Button>
                                 )}
@@ -175,6 +294,10 @@ export default function PrescriptionPage() {
                             <li className="flex gap-2">
                                 <span className="text-primary font-bold">•</span>
                                 <span>ใบสั่งยาจะต้องมีวันที่ชัดเจนและไม่เกิน 6 เดือน</span>
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span>รองรับไฟล์ JPG, PNG, WEBP ขนาดสูงสุด 5MB ต่อไฟล์</span>
                             </li>
                         </ul>
                     </CardContent>

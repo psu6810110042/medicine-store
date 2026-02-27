@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ClipboardList, Package, Coins, Pill } from "lucide-react";
+import { ClipboardList, Package, Coins, Pill, Search, X, Plus, Minus, CheckCircle, XCircle, Eye } from "lucide-react";
 import { orderService } from "@/app/services/orderService";
-import { Order, OrderStatus } from "@/app/types/order";
+import { Order, OrderItem, OrderStatus } from "@/app/types/order";
+import { Product } from "@/app/types/product";
 import { toast } from "sonner";
 const statusLabel: Record<OrderStatus, string> = {
     PENDING_REVIEW: "รอตรวจสอบ",
@@ -196,7 +197,11 @@ export default function PharmacyPage() {
                             <h2 className="text-lg font-bold text-slate-900">
                                 รายการ: {statusLabel[active]}
                             </h2>
-                            <p className="text-sm text-slate-600">คลิกปุ่มเพื่อจัดการคำสั่งซื้อ</p>
+                            <p className="text-sm text-slate-600">
+                                {active === OrderStatus.PRESCRIPTION
+                                    ? "คำสั่งซื้อที่รอตรวจสอบใบสั่งแพทย์ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
+                                    : "คลิกปุ่มเพื่อจัดการคำสั่งซื้อ"}
+                            </p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -215,7 +220,26 @@ export default function PharmacyPage() {
                     </div>
 
                     <div className="p-5 space-y-4">
-                        {filtered.length === 0 ? (
+                        {active === OrderStatus.PRESCRIPTION ? (
+                            filtered.length === 0 ? (
+                                <EmptyState />
+                            ) : (
+                                <div className="space-y-6">
+                                    {filtered.map((order) => (
+                                        <PrescriptionReviewCard
+                                            key={order.id}
+                                            order={order}
+                                            onOrderUpdated={(updated) => {
+                                                setOrders((prev) =>
+                                                    prev.map((o) => (o.id === updated.id ? updated : o))
+                                                );
+                                            }}
+                                            onStatusChange={(id, status) => updateStatus(id, status)}
+                                        />
+                                    ))}
+                                </div>
+                            )
+                        ) : filtered.length === 0 ? (
                             <EmptyState />
                         ) : (
                             filtered.map((order) => (
@@ -596,4 +620,363 @@ function Modal({
     );
 }
 
-/* ---------------- Icons ---------------- */
+
+/* ──────────────────────────────────────────────────────────────
+   PrescriptionReviewCard
+   Full pharmacist workflow: view image → add medicines → approve
+   ────────────────────────────────────────────────────────────── */
+interface PrescriptionDraftItem {
+    product: Product;
+    quantity: number;
+}
+
+function PrescriptionReviewCard({
+    order,
+    onOrderUpdated,
+    onStatusChange,
+}: {
+    order: Order;
+    onOrderUpdated: (updated: Order) => void;
+    onStatusChange: (id: string, status: OrderStatus) => void;
+}) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+    // Search
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<Product[]>([]);
+    const [searching, setSearching] = useState(false);
+    const searchRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    // Draft item list
+    const [draftItems, setDraftItems] = useState<PrescriptionDraftItem[]>(
+        (order.items ?? []).map((it: OrderItem) => ({
+            product: it.product!,
+            quantity: it.quantity,
+        }))
+    );
+
+    // Image lightbox
+    const [imageOpen, setImageOpen] = useState(false);
+
+    // Submitting state
+    const [submitting, setSubmitting] = useState(false);
+
+    // Search debounce
+    const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const doSearch = useCallback(async (q: string) => {
+        if (!q.trim()) { setResults([]); setShowDropdown(false); return; }
+        setSearching(true);
+        try {
+            const res = await fetch(`${apiUrl}/products?search=${encodeURIComponent(q)}`, {
+                credentials: 'include',
+            });
+            if (!res.ok) throw new Error('search failed');
+            const data = await res.json();
+            // Handle both paginated {data:[]} and plain array
+            const products: Product[] = Array.isArray(data) ? data : (data.data ?? []);
+            setResults(products);
+            setShowDropdown(true);
+        } catch {
+            setResults([]);
+        } finally {
+            setSearching(false);
+        }
+    }, [apiUrl]);
+
+    useEffect(() => {
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        searchTimeout.current = setTimeout(() => doSearch(query), 350);
+        return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+    }, [query, doSearch]);
+
+    // Click outside → close dropdown
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (
+                dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+                searchRef.current && !searchRef.current.contains(e.target as Node)
+            ) setShowDropdown(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const addProduct = (product: Product) => {
+        setDraftItems((prev) => {
+            const existing = prev.find((i) => i.product.id === product.id);
+            if (existing) {
+                return prev.map((i) =>
+                    i.product.id === product.id
+                        ? { ...i, quantity: i.quantity + 1 }
+                        : i
+                );
+            }
+            return [...prev, { product, quantity: 1 }];
+        });
+        setQuery('');
+        setShowDropdown(false);
+        setResults([]);
+    };
+
+    const changeQty = (productId: string, delta: number) => {
+        setDraftItems((prev) =>
+            prev
+                .map((i) =>
+                    i.product.id === productId ? { ...i, quantity: i.quantity + delta } : i
+                )
+                .filter((i) => i.quantity > 0)
+        );
+    };
+
+    const removeItem = (productId: string) => {
+        setDraftItems((prev) => prev.filter((i) => i.product.id !== productId));
+    };
+
+    const total = draftItems.reduce(
+        (sum, i) => sum + (i.product.price ?? 0) * i.quantity,
+        0
+    );
+
+    const handleSaveAndApprove = async () => {
+        if (draftItems.length === 0) {
+            toast.error('กรุณาเพิ่มรายการยาอย่างน้อย 1 รายการ');
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const updated = await orderService.addItemsToOrder(
+                order.id,
+                draftItems.map((i) => ({ productId: i.product.id, quantity: i.quantity }))
+            );
+            onOrderUpdated(updated);
+            // Move to PROCESSING
+            await onStatusChange(order.id, OrderStatus.PROCESSING);
+            toast.success('อนุมัติและส่งคำสั่งซื้อเรียบร้อย');
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
+            toast.error(`ไม่สามารถบันทึกรายการยาได้: ${message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleCancel = () => onStatusChange(order.id, OrderStatus.CANCELLED);
+
+    const prescriptionUrl = order.prescriptionImage ?? null;
+
+    return (
+        <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b bg-gradient-to-r from-violet-50 to-indigo-50">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                        ใบสั่งยา
+                    </span>
+                    <p className="font-mono text-xs text-slate-500 truncate max-w-xs">{order.id}</p>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                    ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? '—'}</span>
+                </p>
+                <p className="text-xs text-slate-400">
+                    {new Date(order.createdAt).toLocaleString('th-TH', {
+                        dateStyle: 'medium', timeStyle: 'short',
+                    })}
+                </p>
+            </div>
+
+            {/* Body — two columns */}
+            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
+
+                {/* LEFT — prescription image */}
+                <div className="md:w-52 shrink-0 bg-slate-50 p-4 flex flex-col items-center gap-3">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide self-start">ใบสั่งยา</p>
+                    {prescriptionUrl ? (
+                        <button
+                            type="button"
+                            onClick={() => setImageOpen(true)}
+                            className="flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-violet-700 hover:bg-violet-50 transition-colors"
+                        >
+                            <Eye className="w-4 h-4" />
+                            ดูใบสั่งยา
+                        </button>
+                    ) : (
+                        <div className="w-full h-36 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 text-xs">
+                            ไม่มีรูปใบสั่งยา
+                        </div>
+                    )}
+                    {prescriptionUrl && (
+                        <button
+                            type="button"
+                            onClick={() => setImageOpen(true)}
+                            className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs text-violet-700 hover:bg-violet-50 transition-colors"
+                        >
+                            <Eye className="w-3.5 h-3.5" /> ดูเต็มจอ
+                        </button>
+                    )}
+                </div>
+
+                {/* RIGHT — medicine builder */}
+                <div className="flex-1 p-5 space-y-4 min-w-0">
+                    {/* Search */}
+                    <div>
+                        <p className="text-sm font-semibold text-slate-700 mb-1.5">เพิ่มรายการยา</p>
+                        <div className="relative">
+                            <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2">
+                                <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                                <input
+                                    ref={searchRef}
+                                    type="text"
+                                    placeholder="ค้นหาชื่อยา..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    onFocus={() => results.length > 0 && setShowDropdown(true)}
+                                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                                />
+                                {searching && (
+                                    <span className="text-xs text-slate-400 animate-pulse">กำลังค้นหา...</span>
+                                )}
+                            </div>
+
+                            {showDropdown && results.length > 0 && (
+                                <div
+                                    ref={dropdownRef}
+                                    className="absolute z-20 mt-1 w-full rounded-xl border bg-white shadow-xl max-h-52 overflow-y-auto"
+                                    style={{ scrollbarWidth: 'none' }}
+                                >
+                                    {results.map((product) => (
+                                        <button
+                                            key={product.id}
+                                            type="button"
+                                            onClick={() => addProduct(product)}
+                                            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-violet-50 text-left border-b last:border-0 transition-colors"
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-slate-800 truncate">{product.name}</p>
+                                                <p className="text-xs text-slate-400">
+                                                    คงเหลือ: {product.stockQuantity}
+                                                </p>
+                                            </div>
+                                            <span className="font-semibold text-emerald-600 shrink-0 text-xs">
+                                                ฿{Number(product.price).toLocaleString()}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Selected items */}
+                    <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-sm font-semibold text-slate-700">รายการยาที่เลือก</p>
+                            {draftItems.length > 0 && (
+                                <span className="text-xs font-bold text-slate-700">รวม ฿{total.toLocaleString()}</span>
+                            )}
+                        </div>
+                        {draftItems.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic py-4 text-center border rounded-xl border-dashed">
+                                ยังไม่มีรายการ — ค้นหาและเพิ่มยาด้านบน
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {draftItems.map((item) => (
+                                    <div
+                                        key={item.product.id}
+                                        className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2.5"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-slate-800 text-sm truncate">{item.product.name}</p>
+                                            <p className="text-xs text-slate-500">
+                                                ฿{Number(item.product.price).toLocaleString()} × {item.quantity}
+                                                {' = '}
+                                                <span className="font-semibold text-slate-700">
+                                                    ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => changeQty(item.product.id, -1)}
+                                                className="w-6 h-6 rounded-lg border bg-white flex items-center justify-center hover:bg-red-50 text-slate-600"
+                                            >
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => changeQty(item.product.id, 1)}
+                                                disabled={item.quantity >= (item.product.stockQuantity ?? 999)}
+                                                className="w-6 h-6 rounded-lg border bg-white flex items-center justify-center hover:bg-emerald-50 text-slate-600 disabled:opacity-40"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(item.product.id)}
+                                            className="text-slate-300 hover:text-red-400 transition-colors shrink-0"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            disabled={submitting}
+                            className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                            <XCircle className="w-3.5 h-3.5" />
+                            ยกเลิกคำสั่งซื้อ
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSaveAndApprove}
+                            disabled={submitting || draftItems.length === 0}
+                            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                        >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            {submitting ? 'กำลังบันทึก...' : 'อนุมัติและส่งคำสั่งซื้อ'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Prescription image lightbox */}
+            {imageOpen && prescriptionUrl && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                    onClick={() => setImageOpen(false)}
+                >
+                    <div
+                        className="relative max-w-2xl w-full"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setImageOpen(false)}
+                            className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white shadow text-slate-600 hover:bg-slate-100 z-10"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <img
+                            src={prescriptionUrl}
+                            alt="ใบสั่งยา"
+                            className="w-full rounded-2xl shadow-2xl object-contain max-h-[80vh]"
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

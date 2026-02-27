@@ -48,4 +48,15 @@ export const orderService = {
             body: JSON.stringify({ status }),
         });
     },
+
+    // Add/replace items on a PRESCRIPTION order (pharmacist only)
+    addItemsToOrder: async (
+        id: string,
+        items: { productId: string; quantity: number }[],
+    ): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/items`, {
+            method: 'PATCH',
+            body: JSON.stringify({ items }),
+        });
+    },
 };

@@ -14,7 +14,8 @@ export interface OrderItem {
     orderId: string;
     productId: string;
     quantity: number;
-    price: number;
+    price?: number;
+    priceAtTime: number;
     product?: Product;
 }
 
@@ -34,4 +35,10 @@ export interface Order {
     createdAt: string;
     updatedAt: string;
     items: OrderItem[];
+    user?: {
+        id: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+    };
 }

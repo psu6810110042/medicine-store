@@ -11,6 +11,7 @@ import { Product } from '../products/entities/products.entity';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AddItemsToOrderDto } from './dto/add-items-to-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
@@ -169,5 +170,101 @@ export class OrdersService {
         }
 
         return order;
+    }
+
+    async addItemsToOrder(
+        id: string,
+        dto: AddItemsToOrderDto,
+    ): Promise<Order> {
+        const order = await this.findOne(id);
+
+        if (order.status !== OrderStatus.PRESCRIPTION) {
+            throw new BadRequestException(
+                'Items can only be added to orders with PRESCRIPTION status',
+            );
+        }
+
+        if (!dto.items || dto.items.length === 0) {
+            throw new BadRequestException('At least one item is required');
+        }
+
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // Restore stock from existing items before replacing
+            for (const existingItem of order.items) {
+                const product = await queryRunner.manager.findOne(Product, {
+                    where: { id: existingItem.productId },
+                });
+                if (product) {
+                    product.stockQuantity += existingItem.quantity;
+                    product.inStock = true;
+                    await queryRunner.manager.save(product);
+                }
+            }
+
+            // Delete existing items
+            await queryRunner.manager.delete(OrderItem, { orderId: id });
+
+            let totalAmount = 0;
+            const newItems: OrderItem[] = [];
+
+            for (const itemDto of dto.items) {
+                const product = await queryRunner.manager.findOne(Product, {
+                    where: { id: itemDto.productId },
+                });
+
+                if (!product) {
+                    throw new NotFoundException(`Product ${itemDto.productId} not found`);
+                }
+
+                if (product.stockQuantity < itemDto.quantity) {
+                    throw new BadRequestException(
+                        `Not enough stock for ${product.name}. Available: ${product.stockQuantity}`,
+                    );
+                }
+
+                product.stockQuantity -= itemDto.quantity;
+                if (product.stockQuantity === 0) product.inStock = false;
+                await queryRunner.manager.save(product);
+
+                const item = new OrderItem();
+                item.order = { id } as Order;
+                item.product = product;
+                item.quantity = itemDto.quantity;
+                item.priceAtTime = product.price;
+
+                totalAmount += product.price * itemDto.quantity;
+                newItems.push(item);
+            }
+
+            // Insert new items using plain column values to avoid TypeORM entity tracking issues
+            for (const item of newItems) {
+                await queryRunner.manager
+                    .createQueryBuilder()
+                    .insert()
+                    .into(OrderItem)
+                    .values({
+                        orderId: id,
+                        productId: item.product.id,
+                        quantity: item.quantity,
+                        priceAtTime: item.priceAtTime,
+                    })
+                    .execute();
+            }
+
+            await queryRunner.manager.update(Order, id, { totalAmount });
+
+            await queryRunner.commitTransaction();
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        } finally {
+            await queryRunner.release();
+        }
+
+        return this.findOne(id);
     }
 }

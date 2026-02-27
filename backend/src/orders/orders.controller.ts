@@ -12,6 +12,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { AddItemsToOrderDto } from './dto/add-items-to-order.dto';
 import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
 import { User, UserRole } from '../users/entities/user.entity';
 
@@ -57,5 +58,18 @@ export class OrdersController {
             throw new ForbiddenException('Access denied');
         }
         return this.ordersService.updateStatus(id, updateOrderStatusDto);
+    }
+
+    @Patch(':id/items')
+    addItems(
+        @Request() req,
+        @Param('id') id: string,
+        @Body() addItemsToOrderDto: AddItemsToOrderDto,
+    ) {
+        const user = req.user as User;
+        if (user.role !== UserRole.ADMIN && user.role !== UserRole.PHARMACIST) {
+            throw new ForbiddenException('Access denied');
+        }
+        return this.ordersService.addItemsToOrder(id, addItemsToOrderDto);
     }
 }
