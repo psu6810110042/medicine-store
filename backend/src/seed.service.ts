@@ -339,7 +339,7 @@ export class SeedService implements OnModuleInit {
     const pharmacistEmail = this.configService.get<string>('PHARMACIST_EMAIL');
     const pharmacistPassword = this.configService.get<string>('PHARMACIST_PASSWORD');
     const pharmacistFullName = this.configService.get<string>('PHARMACIST_FULLNAME') || 'System Pharmacist';
-    const pharmacistPhone = this.configService.get<string>('PHARMACIST_PHONE') || '0000000000';
+    const pharmacistPhone = this.configService.get<string>('PHARMACIST_PHONE') || '0000000001';
 
     if (!pharmacistEmail || !pharmacistPassword) {
       this.logger.warn(
