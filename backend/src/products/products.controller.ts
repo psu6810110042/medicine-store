@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request, ForbiddenException} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request, ForbiddenException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -10,10 +10,10 @@ export class ProductsController {
 
     @Post()
     create(@Request() req, @Body() createProductDto: CreateProductDto) {
-      const user = req.user as User;
-      if (!user || req.user.role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Access denied')
-      }
+        const user = req.user as User;
+        if (!user || req.user.role !== UserRole.ADMIN) {
+            throw new ForbiddenException('Access denied')
+        }
         return this.productsService.create(createProductDto);
     }
 
@@ -49,19 +49,19 @@ export class ProductsController {
 
     @Patch(':id')
     update(@Request() req, @Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-      const user = req.user as User;
-      if (!user || req.user.role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Access denied')
-      }
+        const user = req.user as User;
+        if (!user || req.user.role !== UserRole.ADMIN) {
+            throw new ForbiddenException('Access denied')
+        }
         return this.productsService.update(id, updateProductDto);
     }
 
     @Delete(':id')
-    remove(@Request() req, @Param('id') id: string) {  
-      const user = req.user as User;
-      if (!user || req.user.role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Access denied')
-      }
+    remove(@Request() req, @Param('id') id: string) {
+        const user = req.user as User;
+        if (!user || req.user.role !== UserRole.ADMIN) {
+            throw new ForbiddenException('Access denied')
+        }
         return this.productsService.remove(id);
     }
 }
