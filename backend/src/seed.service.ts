@@ -8,329 +8,370 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
 const categories = [
-    {
-        id: "painkiller",
-        name: "ยาแก้ปวด",
-        icon: "pill",
-        count: 45,
-    },
-    {
-        id: "antibiotic",
-        name: "ยาปฏิชีวนะ",
-        icon: "syringe",
-        count: 32,
-    },
-    {
-        id: "vitamins",
-        name: "วิตามินและอาหารเสริม",
-        icon: "heart-pulse",
-        count: 78,
-    },
-    {
-        id: "skincare",
-        name: "ผลิตภัณฑ์ดูแลผิว",
-        icon: "sparkles",
-        count: 56,
-    },
-    {
-        id: "chronic",
-        name: "ยาโรคเรื้อรัง",
-        icon: "activity",
-        count: 41,
-    },
-    {
-        id: "medical-device",
-        name: "เครื่องมือแพทย์",
-        icon: "stethoscope",
-        count: 23,
-    },
-    {
-        id: "baby",
-        name: "สินค้าเด็กและแม่",
-        icon: "baby",
-        count: 34,
-    },
-    {
-        id: "supplements",
-        name: "อาหารเสริม",
-        icon: "leaf",
-        count: 67,
-    },
+  {
+    id: "painkiller",
+    name: "ยาแก้ปวด",
+    icon: "pill",
+    count: 45,
+  },
+  {
+    id: "antibiotic",
+    name: "ยาปฏิชีวนะ",
+    icon: "syringe",
+    count: 32,
+  },
+  {
+    id: "vitamins",
+    name: "วิตามินและอาหารเสริม",
+    icon: "heart-pulse",
+    count: 78,
+  },
+  {
+    id: "skincare",
+    name: "ผลิตภัณฑ์ดูแลผิว",
+    icon: "sparkles",
+    count: 56,
+  },
+  {
+    id: "chronic",
+    name: "ยาโรคเรื้อรัง",
+    icon: "activity",
+    count: 41,
+  },
+  {
+    id: "medical-device",
+    name: "เครื่องมือแพทย์",
+    icon: "stethoscope",
+    count: 23,
+  },
+  {
+    id: "baby",
+    name: "สินค้าเด็กและแม่",
+    icon: "baby",
+    count: 34,
+  },
+  {
+    id: "supplements",
+    name: "อาหารเสริม",
+    icon: "leaf",
+    count: 67,
+  },
 ];
 
 const products = [
-    {
-        name: "พาราเซตามอล 500mg",
-        category: "painkiller",
-        price: 10000000,
-        description: "ยาแก้ปวด ลดไข้ สูตรอ่อนโยน",
-        properties:
-            "ใช้สำหรับบรรเทาอาการปวดและลดไข้ ไม่ระคายเคืองกระเพาะอาหาร เหมาะสำหรับผู้ป่วยทุกวัย",
-        warnings:
-            "ห้ามใช้ในผู้ที่แพ้พาราเซตามอล ไม่ควรใช้เกิน 8 เม็ดต่อวัน อาจทำให้ตับเสียหายหากใช้มากเกินไป",
-        image:
-            "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 150,
-        expiryDate: "2026-12-31",
-    },
-    {
-        name: "อะม็อกซีซิลลิน 500mg",
-        category: "antibiotic",
-        price: 120,
-        description: "ยาปฏิชีวนะกลุ่มเพนิซิลลิน",
-        properties:
-            "ใช้รักษาการติดเชื้อแบคทีเรีย เช่น การติดเชื้อทางเดินหายใจ ทางเดินปัสสาวะ และผิวหนัง",
-        warnings:
-            "ต้องทานให้ครบตามแพทย์สั่ง ห้ามใช้ในผู้แพ้เพนิซิลลิน อาจมีผลข้างเคียงคือผื่นแพ้ ท้องเสีย",
-        image:
-            "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400",
-        inStock: false,
-        isControlled: false,
-        requiresPrescription: true,
-        stockQuantity: 0,
-        expiryDate: "2025-08-15",
-    },
-    {
-        name: "เมทฟอร์มิน 500mg",
-        category: "chronic",
-        price: 180,
-        description: "ยาควบคุมระดับน้ำตาลในเลือด",
-        properties:
-            "ใช้รักษาโรคเบาหวานชนิดที่ 2 ช่วยควบคุมระดับน้ำตาลในเลือด ลดการดูดซึมน้ำตาลจากลำไส้",
-        warnings:
-            "ต้องใช้ภายใต้การดูแลของแพทย์ อาจทำให้ท้องเสีย คลื่นไส้ ต้องตรวจเลือดเป็นระยะ",
-        image:
-            "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=400",
-        inStock: true,
-        isControlled: true,
-        requiresPrescription: true,
-        stockQuantity: 50,
-        expiryDate: "2026-03-20",
-    },
-    {
-        name: "วิตามินซี 1000mg",
-        category: "vitamins",
-        price: 350,
-        description: "วิตามินซีชนิดเม็ดฟู่ รสส้ม",
-        properties:
-            "เสริมสร้างภูมิคุ้มกัน ต้านอนุมูลอิสระ ช่วยให้ผิวพรรณสดใส ดูดซึมง่าย",
-        warnings:
-            "ไม่ควรทานเกิน 2 เม็ดต่อวัน อาจทำให้ท้องเสียหากทานมากเกินไป",
-        image:
-            "https://images.unsplash.com/photo-1765382506526-9de810e1aeb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aXRhbWluJTIwYyUyMHRhYmxldCUyMGVmZmVydmVzY2VudCUyMG9yYW5nZXxlbnwxfHx8fDE3NzA2Mjg2MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 200,
-        expiryDate: "2027-01-10",
-    },
-    {
-        name: "เซรั่มวิตามินซี",
-        category: "skincare",
-        price: 890,
-        description: "เซรั่มบำรุงผิวหน้า ลดจุดด่างดำ",
-        properties:
-            "เซรั่มเข้มข้นที่ช่วยให้ผิวกระจ่างใส ลดริ้วรอย จุดด่างดำ กระ ฟื้นฟูผิวให้สดใส",
-        warnings:
-            "ใช้ภายนอกเท่านั้น ทาทดสอบก่อนใช้ หลีกเลี่ยงบริเวณรอบดวงตา",
-        image:
-            "https://amarit.com/public/uploads/product/Product Banner For Website-03.jpg/",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 75,
-        expiryDate: "2025-11-30",
-    },
-    {
-        name: "เครื่องวัดความดัน ดิจิทัล",
-        category: "medical-device",
-        price: 1250,
-        description: "เครื่องวัดความดันโลหิต แบบอัตโนมัติ",
-        properties:
-            "วัดความดันโลหิตและชีพจรอัตโนมัติ จอแสดงผลขนาดใหญ่ ง่ายต่อการอ่าน มีหน่วยความจำ 60 ครั้ง",
-        warnings:
-            "อ่านคู่มือกรใช้งานก่อนใช้ ไม่ควรใช้ผลการตรวจเพื่อวินิจฉัยด้วยตัวเอง ควรปรึกษาแพทย์",
-        image:
-            "https://images.unsplash.com/photo-1615486511484-92e172cc4fe0?w=400",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 30,
-        expiryDate: "2028-06-30",
-    },
-    {
-        name: "นมผงสูตร 1 (0-6 เดือน)",
-        category: "baby",
-        price: 680,
-        description: "นมผงสำหรับทารก แรกเกิด - 6 เดือน",
-        properties:
-            "สูตรนมผงใกล้เคียงน้ำนมแม่ มี DHA, ARA ช่วยพัฒนาสมองและสายตา โปรตีนย่อยง่าย",
-        warnings:
-            "ควรปรึกษาแพทย์หรือเภสัชกรก่อนใช้ น้ำนมแม่ดีที่สุดสำหรับลูกน้อย",
-        image:
-            "https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=400",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 45,
-        expiryDate: "2025-09-15",
-    },
-    {
-        name: "โอเมก้า 3 น้ำมันปลา",
-        category: "supplements",
-        price: 450,
-        description: "อาหารเสริมน้ำมันปลาบริสุทธิ์",
-        properties:
-            "มี EPA และ DHA สูง ช่วยบำรุงสมอง หัวใจ และหลอดเลือด ลดคอเลสเตอรอล",
-        warnings:
-            "ไม่ควรทานก่อนผ่าตัด หากกินยาต้านการแข็งตัวของเลือดควรปรึกษาแพทย์",
-        image:
-            "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 120,
-        expiryDate: "2026-07-22",
-    },
-    {
-        name: "ไอบูโพรเฟน 400mg",
-        category: "painkiller",
-        price: 45,
-        description: "ยาแก้ปวด แก้อักเสบ ลดไข้",
-        properties:
-            "ยาต้านการอักเสบที่ไม่ใช่สเตียรอยด์ ใช้บรรเทาอาการปวด อักเสบ และลดไข้",
-        warnings:
-            "อาจระคายเคืองกระเพาะ ควรทานหลังอาหาร ห้ามใช้ในผู้ที่มีแผลในกระเพาะ",
-        image:
-            "https://images.unsplash.com/photo-1612448071097-a6b55cf216c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpYnVwcm9mZW4lMjBwaWxscyUyMG1lZGljYXRpb258ZW58MXx8fHwxNzcwNjI4NjA2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        inStock: true,
-        isControlled: false,
-        requiresPrescription: false,
-        stockQuantity: 95,
-        expiryDate: "2026-04-18",
-    },
-    {
-        name: "ซิพโรฟล็อกซาซิน 500mg",
-        category: "antibiotic",
-        price: 250,
-        description: "ยาปฏิชีวนะกลุ่มควิโนโลน",
-        properties:
-            "ใช้รักษาการติดเชื้อแบคทีเรียในระบบต่างๆ ของร่างกาย มีฤทธิ์แรง",
-        warnings:
-            "ต้องมีใบสั่งแพทย์ ห้ามใช้ในเด็กและหญิงตั้งครรภ์ อาจทำให้เส้นเอ็นขาด",
-        image:
-            "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
-        inStock: true,
-        isControlled: true,
-        requiresPrescription: true,
-        stockQuantity: 40,
-        expiryDate: "2025-10-05",
-    },
+  {
+    name: "พาราเซตามอล 500mg",
+    category: "painkiller",
+    price: 10000000,
+    description: "ยาแก้ปวด ลดไข้ สูตรอ่อนโยน",
+    properties:
+      "ใช้สำหรับบรรเทาอาการปวดและลดไข้ ไม่ระคายเคืองกระเพาะอาหาร เหมาะสำหรับผู้ป่วยทุกวัย",
+    warnings:
+      "ห้ามใช้ในผู้ที่แพ้พาราเซตามอล ไม่ควรใช้เกิน 8 เม็ดต่อวัน อาจทำให้ตับเสียหายหากใช้มากเกินไป",
+    image:
+      "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 150,
+    expiryDate: "2026-12-31",
+  },
+  {
+    name: "อะม็อกซีซิลลิน 500mg",
+    category: "antibiotic",
+    price: 120,
+    description: "ยาปฏิชีวนะกลุ่มเพนิซิลลิน",
+    properties:
+      "ใช้รักษาการติดเชื้อแบคทีเรีย เช่น การติดเชื้อทางเดินหายใจ ทางเดินปัสสาวะ และผิวหนัง",
+    warnings:
+      "ต้องทานให้ครบตามแพทย์สั่ง ห้ามใช้ในผู้แพ้เพนิซิลลิน อาจมีผลข้างเคียงคือผื่นแพ้ ท้องเสีย",
+    image:
+      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400",
+    inStock: false,
+    isControlled: false,
+    requiresPrescription: true,
+    stockQuantity: 0,
+    expiryDate: "2025-08-15",
+  },
+  {
+    name: "เมทฟอร์มิน 500mg",
+    category: "chronic",
+    price: 180,
+    description: "ยาควบคุมระดับน้ำตาลในเลือด",
+    properties:
+      "ใช้รักษาโรคเบาหวานชนิดที่ 2 ช่วยควบคุมระดับน้ำตาลในเลือด ลดการดูดซึมน้ำตาลจากลำไส้",
+    warnings:
+      "ต้องใช้ภายใต้การดูแลของแพทย์ อาจทำให้ท้องเสีย คลื่นไส้ ต้องตรวจเลือดเป็นระยะ",
+    image:
+      "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=400",
+    inStock: true,
+    isControlled: true,
+    requiresPrescription: true,
+    stockQuantity: 50,
+    expiryDate: "2026-03-20",
+  },
+  {
+    name: "วิตามินซี 1000mg",
+    category: "vitamins",
+    price: 350,
+    description: "วิตามินซีชนิดเม็ดฟู่ รสส้ม",
+    properties:
+      "เสริมสร้างภูมิคุ้มกัน ต้านอนุมูลอิสระ ช่วยให้ผิวพรรณสดใส ดูดซึมง่าย",
+    warnings:
+      "ไม่ควรทานเกิน 2 เม็ดต่อวัน อาจทำให้ท้องเสียหากทานมากเกินไป",
+    image:
+      "https://images.unsplash.com/photo-1765382506526-9de810e1aeb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aXRhbWluJTIwYyUyMHRhYmxldCUyMGVmZmVydmVzY2VudCUyMG9yYW5nZXxlbnwxfHx8fDE3NzA2Mjg2MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 200,
+    expiryDate: "2027-01-10",
+  },
+  {
+    name: "เซรั่มวิตามินซี",
+    category: "skincare",
+    price: 890,
+    description: "เซรั่มบำรุงผิวหน้า ลดจุดด่างดำ",
+    properties:
+      "เซรั่มเข้มข้นที่ช่วยให้ผิวกระจ่างใส ลดริ้วรอย จุดด่างดำ กระ ฟื้นฟูผิวให้สดใส",
+    warnings:
+      "ใช้ภายนอกเท่านั้น ทาทดสอบก่อนใช้ หลีกเลี่ยงบริเวณรอบดวงตา",
+    image:
+      "https://amarit.com/public/uploads/product/Product Banner For Website-03.jpg/",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 75,
+    expiryDate: "2025-11-30",
+  },
+  {
+    name: "เครื่องวัดความดัน ดิจิทัล",
+    category: "medical-device",
+    price: 1250,
+    description: "เครื่องวัดความดันโลหิต แบบอัตโนมัติ",
+    properties:
+      "วัดความดันโลหิตและชีพจรอัตโนมัติ จอแสดงผลขนาดใหญ่ ง่ายต่อการอ่าน มีหน่วยความจำ 60 ครั้ง",
+    warnings:
+      "อ่านคู่มือกรใช้งานก่อนใช้ ไม่ควรใช้ผลการตรวจเพื่อวินิจฉัยด้วยตัวเอง ควรปรึกษาแพทย์",
+    image:
+      "https://images.unsplash.com/photo-1615486511484-92e172cc4fe0?w=400",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 30,
+    expiryDate: "2028-06-30",
+  },
+  {
+    name: "นมผงสูตร 1 (0-6 เดือน)",
+    category: "baby",
+    price: 680,
+    description: "นมผงสำหรับทารก แรกเกิด - 6 เดือน",
+    properties:
+      "สูตรนมผงใกล้เคียงน้ำนมแม่ มี DHA, ARA ช่วยพัฒนาสมองและสายตา โปรตีนย่อยง่าย",
+    warnings:
+      "ควรปรึกษาแพทย์หรือเภสัชกรก่อนใช้ น้ำนมแม่ดีที่สุดสำหรับลูกน้อย",
+    image:
+      "https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=400",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 45,
+    expiryDate: "2025-09-15",
+  },
+  {
+    name: "โอเมก้า 3 น้ำมันปลา",
+    category: "supplements",
+    price: 450,
+    description: "อาหารเสริมน้ำมันปลาบริสุทธิ์",
+    properties:
+      "มี EPA และ DHA สูง ช่วยบำรุงสมอง หัวใจ และหลอดเลือด ลดคอเลสเตอรอล",
+    warnings:
+      "ไม่ควรทานก่อนผ่าตัด หากกินยาต้านการแข็งตัวของเลือดควรปรึกษาแพทย์",
+    image:
+      "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 120,
+    expiryDate: "2026-07-22",
+  },
+  {
+    name: "ไอบูโพรเฟน 400mg",
+    category: "painkiller",
+    price: 45,
+    description: "ยาแก้ปวด แก้อักเสบ ลดไข้",
+    properties:
+      "ยาต้านการอักเสบที่ไม่ใช่สเตียรอยด์ ใช้บรรเทาอาการปวด อักเสบ และลดไข้",
+    warnings:
+      "อาจระคายเคืองกระเพาะ ควรทานหลังอาหาร ห้ามใช้ในผู้ที่มีแผลในกระเพาะ",
+    image:
+      "https://images.unsplash.com/photo-1612448071097-a6b55cf216c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpYnVwcm9mZW4lMjBwaWxscyUyMG1lZGljYXRpb258ZW58MXx8fHwxNzcwNjI4NjA2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    inStock: true,
+    isControlled: false,
+    requiresPrescription: false,
+    stockQuantity: 95,
+    expiryDate: "2026-04-18",
+  },
+  {
+    name: "ซิพโรฟล็อกซาซิน 500mg",
+    category: "antibiotic",
+    price: 250,
+    description: "ยาปฏิชีวนะกลุ่มควิโนโลน",
+    properties:
+      "ใช้รักษาการติดเชื้อแบคทีเรียในระบบต่างๆ ของร่างกาย มีฤทธิ์แรง",
+    warnings:
+      "ต้องมีใบสั่งแพทย์ ห้ามใช้ในเด็กและหญิงตั้งครรภ์ อาจทำให้เส้นเอ็นขาด",
+    image:
+      "https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400",
+    inStock: true,
+    isControlled: true,
+    requiresPrescription: true,
+    stockQuantity: 40,
+    expiryDate: "2025-10-05",
+  },
 ];
 
 @Injectable()
 export class SeedService implements OnModuleInit {
-    private readonly logger = new Logger(SeedService.name);
+  private readonly logger = new Logger(SeedService.name);
 
-    constructor(
-        private readonly usersService: UsersService,
-        private readonly configService: ConfigService,
-        private readonly categoryService: CategoryService,
-        private readonly productsService: ProductsService,
-    ) { }
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
+    private readonly categoryService: CategoryService,
+    private readonly productsService: ProductsService,
+  ) { }
 
-    async onModuleInit() {
-        await this.seedAdmin();
-        await this.seedCategories();
-        await this.seedProducts();
+  async onModuleInit() {
+    await this.seedAdmin();
+    await this.seedCategories();
+    await this.seedProducts();
+    await this.seedPharmacist();
+  }
+
+  private async seedCategories() {
+    for (const category of categories) {
+      const existingCategory = await this.categoryService.findById(category.id);
+      if (!existingCategory) {
+        this.logger.log(`Seeding category: ${category.name}`);
+        await this.categoryService.create({
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+        });
+      }
+    }
+  }
+
+  private async seedProducts() {
+    let batchCounter = 1;
+    const currentYear = new Date().getFullYear();
+
+    for (const product of products) {
+      const allProducts = await this.productsService.findAll();
+      const existingProduct = allProducts.find(p => p.name === product.name);
+
+      if (!existingProduct) {
+        this.logger.log(`Seeding product: ${product.name}`);
+        const category = await this.categoryService.findById(product.category);
+        if (category) {
+          const { category: _category, ...productData } = product;
+
+          const batchNumber = `BTH${currentYear}-${String(batchCounter).padStart(3, '0')}`;
+          batchCounter++;
+
+          const id = crypto.randomUUID();
+
+          await this.productsService.create({
+            ...productData,
+            id,
+            batchNumber,
+            categoryId: category.id,
+          });
+        } else {
+          this.logger.warn(`Category ${product.category} not found for product ${product.name}. Skipping.`);
+        }
+      }
+    }
+  }
+
+  private async seedAdmin() {
+    const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+    const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
+    const adminFullName = this.configService.get<string>('ADMIN_FULLNAME') || 'System Admin';
+    const adminPhone = this.configService.get<string>('ADMIN_PHONE') || '0000000000';
+
+    if (!adminEmail || !adminPassword) {
+      this.logger.warn(
+        'ADMIN_EMAIL or ADMIN_PASSWORD not found in .env. Skipping admin seeding.',
+      );
+      return;
     }
 
-    private async seedCategories() {
-        for (const category of categories) {
-            const existingCategory = await this.categoryService.findById(category.id);
-            if (!existingCategory) {
-                this.logger.log(`Seeding category: ${category.name}`);
-                await this.categoryService.create({
-                    id: category.id,
-                    name: category.name,
-                    icon: category.icon,
-                });
-            }
-        }
+    try {
+      const existingAdmin = await this.usersService.findByEmail(adminEmail);
+      if (existingAdmin) {
+        this.logger.log(`Admin user ${adminEmail} already exists.`);
+        return;
+      }
+
+      this.logger.log(`Seeding admin user: ${adminEmail}`);
+
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      const adminUser = {
+        email: adminEmail,
+        password: hashedPassword,
+        fullName: adminFullName,
+        phoneNumber: adminPhone,
+        role: UserRole.ADMIN,
+      };
+
+      await this.usersService.create(adminUser as any);
+
+      this.logger.log(`Admin user ${adminEmail} seeded successfully.`);
+    } catch (error) {
+      this.logger.error(`Failed to seed admin user: ${error.message}`, error.stack);
+    }
+  }
+
+  private async seedPharmacist() {
+    const pharmacistEmail = this.configService.get<string>('PHARMACIST_EMAIL');
+    const pharmacistPassword = this.configService.get<string>('PHARMACIST_PASSWORD');
+    const pharmacistFullName = this.configService.get<string>('PHARMACIST_FULLNAME') || 'System Pharmacist';
+    const pharmacistPhone = this.configService.get<string>('PHARMACIST_PHONE') || '0000000000';
+
+    if (!pharmacistEmail || !pharmacistPassword) {
+      this.logger.warn(
+        'PHARMACIST_EMAIL or PHARMACIST_PASSWORD not found in .env. Skipping pharmacist seeding.',
+      );
+      return;
     }
 
-    private async seedProducts() {
-        let batchCounter = 1;
-        const currentYear = new Date().getFullYear();
+    try {
+      const existingPharmacist = await this.usersService.findByEmail(pharmacistEmail);
+      if (existingPharmacist) {
+        this.logger.log(`Pharmacist user ${pharmacistEmail} already exists.`);
+        return;
+      }
 
-        for (const product of products) {
-            const allProducts = await this.productsService.findAll();
-            const existingProduct = allProducts.find(p => p.name === product.name);
+      this.logger.log(`Seeding pharmacist user: ${pharmacistEmail}`);
 
-            if (!existingProduct) {
-                this.logger.log(`Seeding product: ${product.name}`);
-                const category = await this.categoryService.findById(product.category);
-                if (category) {
-                    const { category: _category, ...productData } = product;
+      const hashedPassword = await bcrypt.hash(pharmacistPassword, 10);
 
-                    const batchNumber = `BTH${currentYear}-${String(batchCounter).padStart(3, '0')}`;
-                    batchCounter++;
+      const pharmacistUser = {
+        email: pharmacistEmail,
+        password: hashedPassword,
+        fullName: pharmacistFullName,
+        phoneNumber: pharmacistPhone,
+        role: UserRole.PHARMACIST,
+      };
 
-                    const id = crypto.randomUUID();
+      await this.usersService.create(pharmacistUser as any);
 
-                    await this.productsService.create({
-                        ...productData,
-                        id,
-                        batchNumber,
-                        categoryId: category.id,
-                    });
-                } else {
-                    this.logger.warn(`Category ${product.category} not found for product ${product.name}. Skipping.`);
-                }
-            }
-        }
+      this.logger.log(`Pharmacist user ${pharmacistEmail} seeded successfully.`);
+    } catch (error) {
+      this.logger.error(`Failed to seed pharmacist user: ${error.message}`, error.stack);
     }
-
-    private async seedAdmin() {
-        const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
-        const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
-        const adminFullName = this.configService.get<string>('ADMIN_FULLNAME') || 'System Admin';
-        const adminPhone = this.configService.get<string>('ADMIN_PHONE') || '0000000000';
-
-        if (!adminEmail || !adminPassword) {
-            this.logger.warn(
-                'ADMIN_EMAIL or ADMIN_PASSWORD not found in .env. Skipping admin seeding.',
-            );
-            return;
-        }
-
-        try {
-            const existingAdmin = await this.usersService.findByEmail(adminEmail);
-            if (existingAdmin) {
-                this.logger.log(`Admin user ${adminEmail} already exists.`);
-                return;
-            }
-
-            this.logger.log(`Seeding admin user: ${adminEmail}`);
-
-            const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
-            const adminUser = {
-                email: adminEmail,
-                password: hashedPassword,
-                fullName: adminFullName,
-                phoneNumber: adminPhone,
-                role: UserRole.ADMIN,
-            };
-
-            await this.usersService.create(adminUser as any);
-
-            this.logger.log(`Admin user ${adminEmail} seeded successfully.`);
-        } catch (error) {
-            this.logger.error(`Failed to seed admin user: ${error.message}`, error.stack);
-        }
-    }
+  }
 }
