@@ -4,7 +4,7 @@
     "service": "dev-container",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
-    "remoteUser": "1000",
+    "remoteUser": "node",
     "updateRemoteUserUID": true,
     "forwardPorts": [
         3000,
@@ -12,7 +12,7 @@
         5432,
         6379,
         9000,
-        9001
-    ],
-    "postStartCommand": "socat TCP-LISTEN:9000,fork TCP:rustfs:9000 & socat TCP-LISTEN:9001,fork TCP:rustfs:9001"
+        9001,
+        9323
+    ]
 }
