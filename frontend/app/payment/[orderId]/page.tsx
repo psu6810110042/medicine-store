@@ -323,13 +323,13 @@ export default function PaymentPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setOrder((prev) => ({
+                    setOrder((prev) => prev ? ({
                       ...prev,
                       payment: {
-                        ...(prev.payment ?? { status: "PENDING" }),
+                        ...(prev.payment ?? { status: "UNPAID" as const }),
                         method: "BANK_TRANSFER",
                       },
-                    }))
+                    }) : null)
                   }
                   className={[
                     "rounded-2xl border px-3 py-3 text-sm font-semibold transition",
@@ -343,13 +343,13 @@ export default function PaymentPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setOrder((prev) => ({
+                    setOrder((prev) => prev ? ({
                       ...prev,
                       payment: {
-                        ...(prev.payment ?? { status: "PENDING" }),
+                        ...(prev.payment ?? { status: "UNPAID" as const }),
                         method: "PROMPTPAY",
                       },
-                    }))
+                    }) : null)
                   }
                   className={[
                     "rounded-2xl border px-3 py-3 text-sm font-semibold transition",

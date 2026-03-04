@@ -119,7 +119,6 @@ export default function Navbar() {
                                     onClick={() => {
                                         logout();
                                         router.push('/');
-                                        setIsLoginModalOpen(true);
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition-all"
                                 >

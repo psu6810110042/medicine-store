@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, Suspense } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { productService } from '@/app/services/productService';
 import { orderService } from '@/app/services/orderService';
@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-export default function CartPage() {
+function CartContent() {
     const { cart, updateQuantity, removeFromCart, removeItemsLocally, clearCart, getTotalItems } = useCart();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -460,5 +460,13 @@ export default function CartPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CartPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen pt-24 px-4 pb-20 max-w-7xl mx-auto flex justify-center items-center"><p className="text-gray-500">กำลังโหลดข้อมูลตะกร้าสินค้า...</p></div>}>
+            <CartContent />
+        </Suspense>
     );
 }
