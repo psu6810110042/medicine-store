@@ -314,6 +314,7 @@ export default function Navbar() {
                                     />
                                 </div>
                                 <button
+                                    title="login_button"
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 mt-2"
@@ -403,6 +404,7 @@ export default function Navbar() {
                                     />
                                 </div>
                                 <button
+                                    title="register_button"
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 mt-2"

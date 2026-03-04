@@ -246,6 +246,7 @@ export class SeedService implements OnModuleInit {
         await this.seedAdmin();
         await this.seedCategories();
         await this.seedProducts();
+        await this.seedPharmacist();
     }
 
     private async seedCategories() {
@@ -331,6 +332,46 @@ export class SeedService implements OnModuleInit {
             this.logger.log(`Admin user ${adminEmail} seeded successfully.`);
         } catch (error) {
             this.logger.error(`Failed to seed admin user: ${error.message}`, error.stack);
+        }
+    }
+
+    private async seedPharmacist() {
+        const pharmacistEmail = this.configService.get<string>('PHARMACIST_EMAIL');
+        const pharmacistPassword = this.configService.get<string>('PHARMACIST_PASSWORD');
+        const pharmacistFullName = this.configService.get<string>('PHARMACIST_FULLNAME') || 'System Pharmacist';
+        const pharmacistPhone = this.configService.get<string>('PHARMACIST_PHONE') || '0000000001';
+
+        if (!pharmacistEmail || !pharmacistPassword) {
+            this.logger.warn(
+                'PHARMACIST_EMAIL or PHARMACIST_PASSWORD not found in .env. Skipping pharmacist seeding.',
+            );
+            return;
+        }
+
+        try {
+            const existingPharmacist = await this.usersService.findByEmail(pharmacistEmail);
+            if (existingPharmacist) {
+                this.logger.log(`Pharmacist user ${pharmacistEmail} already exists.`);
+                return;
+            }
+
+            this.logger.log(`Seeding pharmacist user: ${pharmacistEmail}`);
+
+            const hashedPassword = await bcrypt.hash(pharmacistPassword, 10);
+
+            const pharmacistUser = {
+                email: pharmacistEmail,
+                password: hashedPassword,
+                fullName: pharmacistFullName,
+                phoneNumber: pharmacistPhone,
+                role: UserRole.PHARMACIST,
+            };
+
+            await this.usersService.create(pharmacistUser as any);
+
+            this.logger.log(`Pharmacist user ${pharmacistEmail} seeded successfully.`);
+        } catch (error) {
+            this.logger.error(`Failed to seed pharmacist user: ${error.message}`, error.stack);
         }
     }
 }
