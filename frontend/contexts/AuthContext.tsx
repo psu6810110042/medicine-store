@@ -83,10 +83,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
 
             if (res.ok) {
-                // If login successful, fetch user details (or use response if it returns user)
-                // The current controller returns req.user which is the user object
                 const userData = await res.json();
                 setUser(userData);
+
+                // Role-based redirect
+                if (userData.role === 'admin') {
+                    router.push('/admin');
+                } else if (userData.role === 'pharmacist') {
+                    router.push('/pharmacy');
+                }
+
                 return true;
             } else {
                 return false;

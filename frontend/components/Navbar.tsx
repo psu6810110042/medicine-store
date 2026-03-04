@@ -119,7 +119,6 @@ export default function Navbar() {
                                     onClick={() => {
                                         logout();
                                         router.push('/');
-                                        setIsLoginModalOpen(true);
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition-all"
                                 >
@@ -258,13 +257,6 @@ export default function Navbar() {
                                 >
                                     <Package className="w-4 h-4" />
                                     สินค้าทั้งหมด
-                                </Link>
-                                <div className="w-px h-4 bg-gray-300"></div>
-                                <Link
-                                    href="/dev"
-                                    className="px-4 py-2 bg-gray-900/5 hover:bg-gray-900/10 text-gray-700 rounded-full text-sm font-medium transition-all"
-                                >
-                                    Dev Dashboard
                                 </Link>
                             </>
                         )}

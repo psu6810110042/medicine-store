@@ -20,6 +20,13 @@ export enum OrderStatus {
     STOCK = 'STOCK',
 }
 
+export enum PaymentStatus {
+    UNPAID = 'UNPAID',
+    PENDING_REVIEW = 'PENDING_REVIEW',
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED',
+}
+
 @Entity('orders')
 export class Order {
     @PrimaryGeneratedColumn('uuid')
@@ -55,6 +62,26 @@ export class Order {
 
     @Column({ type: 'text', nullable: true })
     notes?: string;
+
+    // Payment Fields
+    @Column({ nullable: true })
+    paymentMethod?: string;
+
+    @Column({
+        type: 'enum',
+        enum: PaymentStatus,
+        default: PaymentStatus.UNPAID,
+    })
+    paymentStatus: PaymentStatus;
+
+    @Column({ nullable: true })
+    paymentSlipUrl?: string;
+
+    @Column({ type: 'text', nullable: true })
+    paymentNote?: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    paidAt?: Date;
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
         cascade: true,

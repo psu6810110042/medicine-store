@@ -35,6 +35,11 @@ export interface Order {
     createdAt: string;
     updatedAt: string;
     items: OrderItem[];
+    paymentMethod?: string;
+    paymentStatus?: 'UNPAID' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+    paymentSlipUrl?: string;
+    paymentNote?: string;
+    paidAt?: string;
     user?: {
         id: string;
         email: string;

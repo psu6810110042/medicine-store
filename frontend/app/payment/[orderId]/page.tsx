@@ -4,6 +4,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { orderService } from "@/app/services/orderService";
+import { productService } from "@/app/services/productService";
 
 type PaymentMethod = "BANK_TRANSFER" | "PROMPTPAY";
 
@@ -16,7 +18,7 @@ type Order = {
   total: number;
   payment?: {
     method: PaymentMethod;
-    status?: "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED";
+    status?: "UNPAID" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
     paidAt?: string;
     slipUrl?: string;
     note?: string;
@@ -36,40 +38,68 @@ export default function PaymentPage() {
   const params = useParams<{ orderId: string }>();
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const [isFetching, setIsFetching] = useState(true);
 
   const orderId = params?.orderId ?? "UNKNOWN";
   const displayName = user?.fullName ?? "ผู้ใช้งาน";
 
-  const [order, setOrder] = useState<Order>({
-    id: orderId,
-    customerName: displayName,
-    createdAt: new Date().toLocaleString("th-TH"),
-    items: [{ name: "ยาตามใบสั่งแพทย์", qty: 1, price: 400 }],
-    total: 400,
-    payment: { method: "BANK_TRANSFER", status: "PENDING" },
-  });
+  const [order, setOrder] = useState<Order | null>(null);
 
-  // อัปเดตชื่อผู้ใช้ใน order เมื่อ auth โหลดเสร็จ
   useEffect(() => {
-    if (!isLoading) {
-      setOrder((prev) => ({
-        ...prev,
-        customerName: user?.fullName ?? prev.customerName,
-      }));
+    if (orderId === "UNKNOWN") {
+      setIsFetching(false);
+      return;
     }
-  }, [isLoading, user?.fullName]);
+    const fetchOrder = async () => {
+      try {
+        const data = await orderService.getOrderById(orderId);
+        const mappedOrder: Order = {
+          id: data.id,
+          customerName: user?.fullName || (data.user?.firstName ? `${data.user.firstName} ${data.user.lastName || ''}`.trim() : 'ผู้ใช้งาน'),
+          createdAt: new Date(data.createdAt).toLocaleString("th-TH"),
+          items: data.items.map(it => ({
+            name: it.product?.name || "สินค้า",
+            qty: it.quantity,
+            price: it.priceAtTime || 0,
+          })),
+          total: data.totalAmount,
+          payment: {
+            method: (data.paymentMethod as PaymentMethod) || "BANK_TRANSFER",
+            status: data.paymentStatus || "UNPAID",
+            paidAt: data.paidAt ? new Date(data.paidAt).toLocaleString("th-TH") : undefined,
+            slipUrl: data.paymentSlipUrl,
+            note: data.paymentNote,
+          },
+        };
+        setOrder(mappedOrder);
+      } catch (err) {
+        console.error(err);
+        showToast("ไม่สามารถโหลดข้อมูลคำสั่งซื้อได้");
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    if (!isLoading) {
+      fetchOrder();
+    }
+  }, [orderId, isLoading, user?.fullName]);
 
   const itemsTotal = useMemo(
-    () => order.items.reduce((sum, it) => sum + it.price * it.qty, 0),
-    [order.items]
+    () => order?.items.reduce((sum, it) => sum + it.price * it.qty, 0) ?? 0,
+    [order?.items]
   );
 
   const [slipFile, setSlipFile] = useState<File | null>(null);
-  const [slipPreview, setSlipPreview] = useState<string | null>(
-    order.payment?.slipUrl ?? null
-  );
-  const [note, setNote] = useState(order.payment?.note ?? "");
+  const [slipPreview, setSlipPreview] = useState<string | null>(null);
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (order) {
+      setSlipPreview(order.payment?.slipUrl ?? null);
+      setNote(order.payment?.note ?? "");
+    }
+  }, [order]);
 
   // mini toast
   const [toast, setToast] = useState<string | null>(null);
@@ -123,46 +153,84 @@ export default function PaymentPage() {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      // TODO: ต่อ API จริงได้ภายหลัง (FormData)
-      setOrder((prev) => ({
-        ...prev,
-        payment: {
-          ...(prev.payment ?? { method: "BANK_TRANSFER" as PaymentMethod }),
-          status: "SUBMITTED",
-          paidAt: new Date().toLocaleString("th-TH"),
-          slipUrl: slipPreview ?? undefined,
-          note,
-        },
-      }));
+      let finalSlipUrl = order?.payment?.slipUrl;
+      if (slipFile) {
+        // อัปโหลดไฟล์ไปที่ server ก่อน
+        const uploadRes = await productService.uploadImage(slipFile, "payment-slips");
+        finalSlipUrl = uploadRes.url;
+      }
+
+      if (!finalSlipUrl) {
+        throw new Error("กรุณาอัปโหลดสลิปที่ถูกต้อง");
+      }
+
+      const updatedOrder = await orderService.submitPayment(orderId, {
+        method: order?.payment?.method || "BANK_TRANSFER",
+        note,
+        slipUrl: finalSlipUrl,
+      });
+
+      setOrder((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          payment: {
+            ...prev.payment,
+            method: (updatedOrder.paymentMethod as PaymentMethod) || "BANK_TRANSFER",
+            status: updatedOrder.paymentStatus || "PENDING_REVIEW",
+            paidAt: updatedOrder.paidAt ? new Date(updatedOrder.paidAt).toLocaleString("th-TH") : undefined,
+            slipUrl: updatedOrder.paymentSlipUrl,
+            note: updatedOrder.paymentNote,
+          },
+        };
+      });
       showToast("ส่งหลักฐานเรียบร้อย ✅ รอร้านตรวจสอบ");
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      showToast("ส่งหลักฐานไม่สำเร็จ ลองใหม่อีกครั้ง");
+      showToast(e.message || "ส่งหลักฐานไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
       setSubmitting(false);
     }
   };
 
   const statusBadge =
-    order.payment?.status === "SUBMITTED"
+    order?.payment?.status === "PENDING_REVIEW"
       ? "bg-sky-100 text-sky-700 border-sky-200"
-      : order.payment?.status === "APPROVED"
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : order.payment?.status === "REJECTED"
-      ? "bg-rose-100 text-rose-700 border-rose-200"
-      : "bg-amber-100 text-amber-700 border-amber-200";
+      : order?.payment?.status === "APPROVED"
+        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+        : order?.payment?.status === "REJECTED"
+          ? "bg-rose-100 text-rose-700 border-rose-200"
+          : "bg-amber-100 text-amber-700 border-amber-200";
 
   const statusText =
-    order.payment?.status === "SUBMITTED"
+    order?.payment?.status === "PENDING_REVIEW"
       ? "ส่งสลิปแล้ว (รอตรวจสอบ)"
-      : order.payment?.status === "APPROVED"
-      ? "ชำระเงินสำเร็จ"
-      : order.payment?.status === "REJECTED"
-      ? "สลิปมีปัญหา"
-      : "ยังไม่ชำระเงิน";
+      : order?.payment?.status === "APPROVED"
+        ? "ชำระเงินสำเร็จ"
+        : order?.payment?.status === "REJECTED"
+          ? "สลิปมีปัญหา"
+          : "ยังไม่ชำระเงิน";
 
-  const isPromptPay = order.payment?.method === "PROMPTPAY";
-  const amount = (order.total ?? itemsTotal).toLocaleString();
+  const isPromptPay = order?.payment?.method === "PROMPTPAY";
+  const amount = (order?.total ?? itemsTotal).toLocaleString();
+
+  if (isFetching) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500 animate-pulse font-medium">กำลังโหลดข้อมูลคำสั่งซื้อ...</div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">ไม่พบคำสั่งซื้อ</h2>
+        <p className="text-slate-600 mb-6">ไม่พบข้อมูลคำสั่งซื้อที่ท่านต้องการทำรายการ หรือคำสั่งซื้อถูกยกเลิกไปแล้ว</p>
+        <button onClick={() => router.push('/')} className="rounded-2xl border px-6 py-3 bg-white hover:bg-slate-50 font-semibold text-slate-700">กลับไปหน้าหลัก</button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -255,13 +323,13 @@ export default function PaymentPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setOrder((prev) => ({
+                    setOrder((prev) => prev ? ({
                       ...prev,
                       payment: {
-                        ...(prev.payment ?? { status: "PENDING" }),
+                        ...(prev.payment ?? { status: "UNPAID" as const }),
                         method: "BANK_TRANSFER",
                       },
-                    }))
+                    }) : null)
                   }
                   className={[
                     "rounded-2xl border px-3 py-3 text-sm font-semibold transition",
@@ -275,13 +343,13 @@ export default function PaymentPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setOrder((prev) => ({
+                    setOrder((prev) => prev ? ({
                       ...prev,
                       payment: {
-                        ...(prev.payment ?? { status: "PENDING" }),
+                        ...(prev.payment ?? { status: "UNPAID" as const }),
                         method: "PROMPTPAY",
                       },
-                    }))
+                    }) : null)
                   }
                   className={[
                     "rounded-2xl border px-3 py-3 text-sm font-semibold transition",
