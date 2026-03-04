@@ -2,6 +2,7 @@ import {
     BadRequestException,
     Injectable,
     NotFoundException,
+    ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -34,7 +35,6 @@ export class OrdersService {
             let totalAmount = 0;
             const orderItemsToSave: OrderItem[] = [];
 
-            // Get user's cart to clean up ordered items
             const cart = await queryRunner.manager.findOne(Cart, {
                 where: { user: { id: userId } }
             });
@@ -61,7 +61,6 @@ export class OrdersService {
                     );
                 }
 
-                // Deduct stock
                 product.stockQuantity -= itemDto.quantity;
                 if (product.stockQuantity === 0) {
                     product.inStock = false;
@@ -86,7 +85,6 @@ export class OrdersService {
             order.notes = createOrderDto.notes;
             order.items = orderItemsToSave;
 
-            // Status logic: if there is a prescription image, it goes to PRESCRIPTION, else PENDING_REVIEW
             if (createOrderDto.prescriptionImage) {
                 order.status = OrderStatus.PRESCRIPTION;
             }
@@ -139,7 +137,6 @@ export class OrdersService {
         const order = await this.findOne(id);
         order.status = updateOrderStatusDto.status;
 
-        // Restore stock if cancelled
         if (updateOrderStatusDto.status === OrderStatus.CANCELLED) {
             const queryRunner = this.dataSource.createQueryRunner();
             await queryRunner.connect();
@@ -153,7 +150,7 @@ export class OrdersService {
 
                     if (product) {
                         product.stockQuantity += item.quantity;
-                        product.inStock = true; // since it's > 0
+                        product.inStock = true;
                         await queryRunner.manager.save(product);
                     }
                 }
@@ -193,7 +190,6 @@ export class OrdersService {
         await queryRunner.startTransaction();
 
         try {
-            // Restore stock from existing items before replacing
             for (const existingItem of order.items) {
                 const product = await queryRunner.manager.findOne(Product, {
                     where: { id: existingItem.productId },
@@ -205,7 +201,6 @@ export class OrdersService {
                 }
             }
 
-            // Delete existing items
             await queryRunner.manager.delete(OrderItem, { orderId: id });
 
             let totalAmount = 0;
@@ -240,7 +235,6 @@ export class OrdersService {
                 newItems.push(item);
             }
 
-            // Insert new items using plain column values to avoid TypeORM entity tracking issues
             for (const item of newItems) {
                 await queryRunner.manager
                     .createQueryBuilder()
@@ -266,5 +260,48 @@ export class OrdersService {
         }
 
         return this.findOne(id);
+    }
+
+    async submitPayment(
+        orderId: string,
+        userId: string,
+        payload: {
+            method: 'BANK_TRANSFER' | 'PROMPTPAY';
+            note: string;
+            slipUrl: string;
+        },
+    ): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id: orderId },
+            relations: ['user', 'items', 'items.product'],
+        });
+
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${orderId} not found`);
+        }
+
+        if (order.user?.id !== userId) {
+            throw new ForbiddenException('This order does not belong to you');
+        }
+
+        const hasPaidTag = (order.notes ?? '').includes('[PAYMENT_SUBMITTED]');
+        if (hasPaidTag) {
+            throw new BadRequestException('Payment already submitted');
+        }
+
+        const paymentText = [
+            '[PAYMENT_SUBMITTED]',
+            `method=${payload.method}`,
+            `slipUrl=${payload.slipUrl}`,
+            `note=${payload.note ?? ''}`,
+            `paidAt=${new Date().toISOString()}`,
+        ].join(' | ');
+
+        order.notes = order.notes
+            ? `${order.notes}\n${paymentText}`
+            : paymentText;
+
+        await this.orderRepository.save(order);
+        return this.findOne(orderId);
     }
 }
