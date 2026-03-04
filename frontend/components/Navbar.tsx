@@ -101,18 +101,21 @@ export default function Navbar() {
 
     return (
         <>
-            <nav className="w-full border-b border-gray-200/50 bg-white/60 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/dashboard" className="flex items-center gap-2 group p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300">
-                        <div className="bg-primary/10 p-1.5 rounded-lg group-hover:bg-primary/20 transition-colors">
-                            <UserCircle className="w-5 h-5 text-primary" />
-                        </div>
-                        <span className="font-semibold text-gray-700 group-hover:text-primary transition-colors">
-                            บัญชีของฉัน
-                        </span>
-                    </Link>
+         <nav className="w-full border-b border-gray-200/50 bg-white/60 backdrop-blur-md sticky top-0 z-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
-                    <div className="flex items-center gap-4 sm:gap-6">
+    {/* ✅ ซ้าย: บัญชีของฉัน -> /profile */}
+    <Link href="/profile" className="flex items-center gap-2 group p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300">
+      <div className="bg-primary/10 p-1.5 rounded-lg group-hover:bg-primary/20 transition-colors">
+        <UserCircle className="w-5 h-5 text-primary" />
+      </div>
+      <span className="font-semibold text-gray-700 group-hover:text-primary transition-colors">
+        บัญชีของฉัน
+      </span>
+    </Link>
+
+    {/* ✅ ขวา: เมนูอื่น ๆ ของคุณ (คงของเดิมไว้) */}
+    <div className="flex items-center gap-4 sm:gap-6">
                         <div className="flex items-center gap-3">
                             {user ? (
                                 <button
