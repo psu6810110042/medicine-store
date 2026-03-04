@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 // Define the routes that need protection
 const protectedRoutes = ['/admin', '/pharmacist'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
     // Check if the path requires protection

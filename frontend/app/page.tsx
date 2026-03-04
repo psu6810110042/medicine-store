@@ -47,6 +47,7 @@ function SearchForm() {
 }
 
 function StoreContent() {
+    const router = useRouter();
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -120,7 +121,7 @@ function StoreContent() {
                         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">หมวดหมู่สินค้า</h2>
                         <Button
                             variant="outline"
-                            onClick={() => { }}
+                            onClick={() => router.push(`/products`)}
                             className="bg-white/50 backdrop-blur-sm hover:bg-white/80"
                         >
                             ดูสินค้าทั้งหมด
@@ -131,7 +132,12 @@ function StoreContent() {
                             <Card
                                 key={category.id}
                                 className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 bg-white/60 backdrop-blur-md border-white/20"
-                                onClick={() => { }}
+                                onClick={() => {
+                                  const searchParams = new URLSearchParams();
+                                  searchParams.set('category', category.id.toString());
+
+                                  router.push(`/products?${searchParams.toString()}`);
+                                }}
                             >
                                 <CardContent className="p-6 text-center">
                                     <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
@@ -166,7 +172,7 @@ function StoreContent() {
                                 <Card
                                     key={product.id}
                                     className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                                    onClick={() => { }}
+                                        onClick={() => router.push(`/products/${product.id}`)}
                                 >
                                     <div className="relative bg-white/50 h-48 p-4">
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -219,7 +225,7 @@ function StoreContent() {
                                 <Card
                                     key={product.id}
                                     className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                                    onClick={() => { }}
+                                        onClick={() => router.push(`/products/${product.id}`)}
                                 >
                                     <div className="relative bg-white/50 h-48 p-4">
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
