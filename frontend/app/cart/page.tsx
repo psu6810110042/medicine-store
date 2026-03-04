@@ -1,141 +1,208 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { productService } from '@/app/services/productService';
 import { orderService } from '@/app/services/orderService';
 import { Product } from '@/app/types/product';
-import ImageUpload from '@/app/components/ImageUpload';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Upload, FileCheck } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, removeItemsLocally, clearCart, getTotalItems } = useCart();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    // Buy Now state
+    const searchParams = useSearchParams();
+    const buyNowId = searchParams.get('buyNow');
+    const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
+    const [buyNowQty, setBuyNowQty] = useState(1);
 
     // Checkout states
     const [shippingAddress, setShippingAddress] = useState('');
     const [notes, setNotes] = useState('');
-    const [prescriptionImageUrl, setPrescriptionImageUrl] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Prescription upload states
+    const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+    const [dragging, setDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const router = useRouter();
 
-    useEffect(() => {
-        const loadCartProducts = async () => {
-            if (cart.length === 0) {
-                setProducts([]);
-                setLoading(false);
-                return;
-            }
+    const isBuyNowMode = !!buyNowId;
 
-            const ids = cart.map(item => item.productId);
+    // Load products map based on mode
+    useEffect(() => {
+        const loadProductsData = async () => {
+            setLoading(true);
             try {
-                // Fetch products by IDs
-                const fetchedProducts = await productService.getProducts({}); // Need to pass params or fetch individually if it doesn't accept IDs
-                setProducts(fetchedProducts);
+                if (isBuyNowMode) {
+                    // Fetch just the single product
+                    const p = await productService.getProduct(buyNowId!);
+                    setBuyNowProduct(p);
+                } else {
+                    // Fetch cart products
+                    if (cart.length === 0) {
+                        setProducts([]);
+                        setLoading(false);
+                        return;
+                    }
+                    const fetchedProducts = await productService.getProducts({});
+                    setProducts(fetchedProducts);
+                }
             } catch (error) {
-                console.error('Failed to load cart products:', error);
-                toast.error('ไม่สามารถโหลดข้อมูลสินค้าในตะกร้าได้');
+                console.error('Failed to load products:', error);
+                toast.error('ไม่สามารถโหลดข้อมูลสินค้าได้');
             } finally {
                 setLoading(false);
             }
         };
 
-        loadCartProducts();
-    }, [cart.length]); // Reload if cart count changes from 0 to something or vice versa (though mainly initial load)
-    // Note: If quantities change, we don't need to refetch products.
-    // However, if items are added/removed, 'cart' changes.
-    // If we add complex logic, we might need to optimize.
-    // For now, depending on cart.length might be not enough if we swap items, but ids are derived from cart.
-    // Let's rely on ids check or just refetch if cart items change (ids change).
-
-    // Better effect dependency:
-    useEffect(() => {
-        const loadCartProducts = async () => {
-            const ids = cart.map(item => item.productId);
-            if (ids.length === 0) {
-                setProducts([]);
-                setLoading(false);
-                return;
-            }
-
-            // Optimization: Only fetch if we have new IDs or verified missing ones? 
-            // For simplicity, just fetch all IDs in cart.
-            try {
-                const fetchedProducts = await productService.getProducts({}); // Re-evaluate how IDs are fetched
-                setProducts(fetchedProducts);
-            } catch (error) {
-                console.error('Failed to load cart products:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        // Debounce or check if IDs actually changed could be good, but for now simple approach:
-        // We only really need to fetch when specific product IDs enter the cart that we don't have.
-        // But since we don't persist product data, we must fetch on mount.
-        // And if new items are added while on this page (unlikely unless distinct window), we might want to update.
-        // Let's just run when cart structure (IDs) changes.
-        const ids = cart.map(c => c.productId).sort().join(',');
-        loadCartProducts();
+        loadProductsData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [JSON.stringify(cart.map(c => c.productId).sort())]);
-
+    }, [buyNowId, cart.length]);
 
     const getProduct = (id: string) => products.find(p => p.id === id);
 
+    // Get active items to render/checkout
+    const activeItems = useMemo(() => {
+        if (isBuyNowMode) {
+            if (!buyNowProduct) return [];
+            return [{
+                productId: buyNowProduct.id,
+                quantity: buyNowQty,
+                product: buyNowProduct
+            }];
+        }
+        return cart.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            product: getProduct(item.productId)
+        })).filter(item => item.product !== undefined);
+    }, [isBuyNowMode, buyNowProduct, buyNowQty, cart, products]);
+
     const calculateTotal = () => {
-        return cart.reduce((total, item) => {
-            const product = getProduct(item.productId);
-            return total + (product ? product.price * item.quantity : 0);
+        return activeItems.reduce((total, item) => {
+            return total + ((item.product?.price || 0) * item.quantity);
         }, 0);
     };
 
-    const requiresPrescription = cart.some(item => {
-        const product = getProduct(item.productId);
-        return product?.requiresPrescription || product?.isControlled;
+    const requiresPrescription = activeItems.some(item => {
+        return item.product?.requiresPrescription || item.product?.isControlled;
     });
 
+    // File handlers
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+                toast.error('รองรับเฉพาะ JPG, PNG หรือ WEBP');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('ขนาดไฟล์เกิน 5MB');
+                return;
+            }
+            setPrescriptionFile(file);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+                toast.error('รองรับเฉพาะ JPG, PNG หรือ WEBP');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('ขนาดไฟล์เกิน 5MB');
+                return;
+            }
+            setPrescriptionFile(file);
+        }
+    };
+
+    const uploadPrescriptionImage = async (): Promise<string | null> => {
+        if (!prescriptionFile) return null;
+
+        const formData = new FormData();
+        formData.append("file", prescriptionFile);
+
+        const uploadRes = await fetch(`${API_URL}/upload/image/prescription`, {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+        });
+
+        if (!uploadRes.ok) {
+            const err = await uploadRes.json().catch(() => ({}));
+            throw new Error(err?.message || `ไม่สามารถอัปโหลดไฟล์รูปภาพได้`);
+        }
+
+        const { url } = await uploadRes.json();
+        return url;
+    };
+
     const handleCheckout = async () => {
-        if (requiresPrescription && !prescriptionImageUrl) {
+        if (!user) {
+            toast.error('กรุณาเข้าสู่ระบบก่อนทำการสั่งซื้อ');
+            return;
+        }
+
+        if (requiresPrescription && !prescriptionFile) {
             toast.error('กรุณาอัปโหลดใบสั่งยา เนื่องจากมีรายการยาควบคุม');
             return;
         }
 
-        if (!shippingAddress.trim()) {
+        const trimmedAddress = shippingAddress.trim();
+        if (!trimmedAddress) {
             toast.error('กรุณาระบุที่อยู่จัดส่ง');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            const orderedProductIds = cart.map(item => item.productId);
+            let prescriptionImageUrl: string | undefined = undefined;
+            if (requiresPrescription && prescriptionFile) {
+                const url = await uploadPrescriptionImage();
+                if (url) prescriptionImageUrl = url;
+            }
 
-            // Parse the basic shipping string into structured object for backend
-            await orderService.createOrder({
-                items: cart.map(item => ({ productId: item.productId, quantity: item.quantity })),
+            const orderedProductIds = activeItems.map(item => item.productId);
+
+            const createdOrder = await orderService.createOrder({
+                items: activeItems.map(item => ({ productId: item.productId, quantity: item.quantity })),
                 shippingAddress: {
-                    street: shippingAddress,
+                    street: trimmedAddress,
                     district: '-',
                     province: '-',
                     postalCode: '-',
                 },
                 notes,
-                prescriptionImage: prescriptionImageUrl || undefined,
+                prescriptionImage: prescriptionImageUrl,
             });
 
-            removeItemsLocally(orderedProductIds);
+            if (!isBuyNowMode) {
+                removeItemsLocally(orderedProductIds);
+            }
+
             toast.success('สั่งซื้อสินค้าสำเร็จ!');
-            router.push('/dashboard/orders'); // Navigate to user's orders page
+            router.push(`/payment/${createdOrder.id}`);
         } catch (error) {
             console.error('Checkout failed:', error);
-            toast.error('เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง');
+            toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง');
         } finally {
             setIsSubmitting(false);
         }
@@ -143,197 +210,254 @@ export default function CartPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 p-8 flex justify-center items-center">
+            <div className="min-h-screen bg-slate-50 p-8 flex justify-center items-center">
                 <div className="animate-pulse flex flex-col items-center">
                     <div className="h-8 w-8 bg-primary/20 rounded-full mb-4"></div>
-                    <p className="text-muted-foreground">กำลังโหลดตะกร้าสินค้า...</p>
+                    <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
                 </div>
             </div>
         );
     }
 
+    if (activeItems.length === 0) {
+        return (
+            <div className="min-h-screen bg-slate-50 py-12 px-4 flex flex-col items-center justify-center p-4">
+                <ShoppingBag className="w-24 h-24 text-slate-200 mb-6" />
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">ไม่พบสินค้าในรายการสั่งซื้อ</h2>
+                <p className="text-slate-600 mb-6">คุณยังไม่ได้เพิ่มสินค้าใดๆ หรือสินค้านี้อาจไม่มีอยู่แล้ว</p>
+                <Link href="/">
+                    <button className="rounded-2xl border px-6 py-3 bg-white hover:bg-slate-50 font-semibold text-slate-700 transition">
+                        กลับไปเลือกซื้อสินค้า
+                    </button>
+                </Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-5xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                         <ShoppingBag className="w-8 h-8 text-primary" />
-                        ตะกร้าสินค้า
-                        ({getTotalItems()} รายการ)
+                        {isBuyNowMode ? 'สั่งซื้อทันที' : 'ตะกร้าสินค้า'}
                     </h1>
                     <Link href="/">
-                        <Button variant="outline">
+                        <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:text-slate-900">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             เลือกซื้อสินค้าต่อ
                         </Button>
                     </Link>
                 </div>
 
-                {cart.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-16">
-                            <ShoppingBag className="w-24 h-24 text-gray-200 mb-6" />
-                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">ตะกร้าสินค้าว่างเปล่า</h2>
-                            <p className="text-gray-500 mb-8">คุณยังไม่ได้เพิ่มสินค้าใดๆ ลงในตะกร้า</p>
-                            <Link href="/">
-                                <Button size="lg" className="bg-primary hover:bg-primary/90">
-                                    เลือกซื้อสินค้า
-                                </Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Cart Items List */}
-                        <div className="lg:col-span-2 space-y-4">
-                            {cart.map((item) => {
-                                const product = getProduct(item.productId);
-                                if (!product) return null; // Or skeleton
-
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-slate-800">
+                    {/* Left Column: Items List & Upload */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="space-y-4">
+                            {activeItems.map((item) => {
+                                const product = item.product!;
                                 return (
-                                    <Card key={item.productId} className="overflow-hidden">
-                                        <CardContent className="p-4 flex gap-4">
-                                            {/* Product Image */}
-                                            <div className="w-24 h-24 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
-                                                <img
-                                                    src={product.image}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-contain p-2"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).style.display = 'none';
-                                                    }}
-                                                />
-                                            </div>
+                                    <div key={item.productId} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex gap-4 transition-all hover:shadow-md">
+                                        <div className="w-24 h-24 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100">
+                                            <img
+                                                src={product.image}
+                                                alt={product.name}
+                                                className="w-full h-full object-contain p-2"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        </div>
 
-                                            {/* Product Details */}
-                                            <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                                <div>
-                                                    <div className="flex justify-between items-start">
-                                                        <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
-                                                            {product.name}
-                                                        </h3>
+                                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                                            <div>
+                                                <div className="flex justify-between items-start">
+                                                    <h3 className="text-lg font-bold text-slate-800 line-clamp-2 pr-4 leading-tight">
+                                                        {product.name}
+                                                    </h3>
+                                                    {!isBuyNowMode && (
                                                         <button
                                                             onClick={() => removeFromCart(item.productId)}
-                                                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                            className="text-slate-400 hover:text-rose-500 transition-colors p-1"
                                                             title="ลบสินค้า"
                                                         >
                                                             <Trash2 className="w-5 h-5" />
                                                         </button>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 line-clamp-1">{product.description}</p>
-                                                    {product.isControlled && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                            ยาควบคุม
-                                                        </span>
                                                     )}
                                                 </div>
+                                                <p className="text-sm text-slate-500 line-clamp-1 mt-1">{product.description}</p>
+                                                {product.isControlled && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 mt-2 rounded-md text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">
+                                                        ยาควบคุม
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                                <div className="flex items-center justify-between mt-4">
-                                                    <div className="flex items-center border rounded-md">
-                                                        <button
-                                                            className="p-1 px-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                                                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                                                            disabled={item.quantity <= 1}
-                                                        >
-                                                            <Minus className="w-3 h-3" />
-                                                        </button>
-                                                        <span className="px-3 py-1 text-sm font-medium text-gray-900 border-x">
-                                                            {item.quantity}
-                                                        </span>
-                                                        <button
-                                                            className="p-1 px-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                                                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                                            disabled={item.quantity >= product.stockQuantity} // Check stock?
-                                                        >
-                                                            <Plus className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-lg font-bold text-primary">
-                                                            ฿{(product.price * item.quantity).toLocaleString()}
-                                                        </p>
-                                                    </div>
+                                            <div className="flex items-center justify-between mt-4">
+                                                <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white">
+                                                    <button
+                                                        className="p-1.5 px-3 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                                                        onClick={() => {
+                                                            if (isBuyNowMode) setBuyNowQty(Math.max(1, buyNowQty - 1));
+                                                            else updateQuantity(item.productId, item.quantity - 1);
+                                                        }}
+                                                        disabled={item.quantity <= 1}
+                                                    >
+                                                        <Minus className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <span className="px-4 py-1 text-sm font-semibold text-slate-800 border-x border-slate-200 bg-slate-50 min-w-[2.5rem] text-center">
+                                                        {item.quantity}
+                                                    </span>
+                                                    <button
+                                                        className="p-1.5 px-3 text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                                                        onClick={() => {
+                                                            if (isBuyNowMode) setBuyNowQty(Math.min(product.stockQuantity, buyNowQty + 1));
+                                                            else updateQuantity(item.productId, item.quantity + 1);
+                                                        }}
+                                                        disabled={item.quantity >= product.stockQuantity}
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-slate-900">
+                                                        ฿{(product.price * item.quantity).toLocaleString()}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </div>
 
-                        {/* Order Summary */}
-                        <div className="lg:col-span-1">
-                            <Card className="sticky top-24">
-                                <CardContent className="p-6">
-                                    <h2 className="text-lg font-bold text-gray-900 mb-6">สรุปคำสั่งซื้อ</h2>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between text-base text-gray-600">
-                                            <span>ยอดรวม ({getTotalItems()} ชิ้น)</span>
-                                            <span>฿{calculateTotal().toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-base text-gray-600">
-                                            <span>ค่าจัดส่ง</span>
-                                            <span className="text-green-600">ฟรี</span>
-                                        </div>
-                                        <div className="border-t pt-4 flex justify-between items-center">
-                                            <span className="text-lg font-bold text-gray-900">ยอดรวมทั้งสิ้น</span>
-                                            <span className="text-2xl font-bold text-primary">
-                                                ฿{calculateTotal().toLocaleString()}
-                                            </span>
-                                        </div>
+                        {/* File Upload Section */}
+                        {requiresPrescription && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="p-4 bg-orange-50 border-b border-orange-100 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                                    <h3 className="font-bold text-orange-900">ระบุข้อมูลทางการแพทย์ (มีรายการยาควบคุม)</h3>
+                                </div>
+                                <div className="p-6">
+                                    <p className="text-sm text-slate-600 mb-4">
+                                        กรุณาแนบรูปภาพใบสั่งยา หรือใบรับรองแพทย์ เพื่อให้เภสัชกรตรวจสอบความถูกต้องก่อนจัดส่ง
+                                    </p>
 
-                                        <div className="border-t pt-4 space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">ที่อยู่จัดส่ง</label>
-                                                <textarea
-                                                    placeholder="กรอกที่อยู่สำหรับจัดส่งสินค้า..."
-                                                    className="w-full min-h-[80px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                                    value={shippingAddress}
-                                                    onChange={(e) => setShippingAddress(e.target.value)}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">หมายเหตุถึงร้านค้า (ถ้ามี)</label>
-                                                <textarea
-                                                    placeholder="เช่น ฝากบอกเภสัชกร..."
-                                                    className="w-full p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                                    value={notes}
-                                                    onChange={(e) => setNotes(e.target.value)}
-                                                />
-                                            </div>
-
-                                            {requiresPrescription && (
-                                                <div className="space-y-2 p-4 bg-orange-50 rounded-lg border border-orange-100">
-                                                    <label className="text-sm font-medium text-orange-800 flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                                                        จำเป็นต้องแนบใบสั่งยา
-                                                    </label>
-                                                    <ImageUpload
-                                                        folder="prescription"
-                                                        label="อัปโหลดใบสั่งยา หรือใบรับรองแพทย์"
-                                                        onUploadSuccess={(url) => setPrescriptionImageUrl(url)}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                    </div>
-                                    <Button
-                                        className="w-full mt-8 bg-primary hover:bg-primary/90 text-lg py-6 shadow-lg"
-                                        onClick={handleCheckout}
-                                        disabled={isSubmitting || (requiresPrescription && !prescriptionImageUrl) || !shippingAddress.trim() || cart.length === 0}
+                                    <div
+                                        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${dragging ? "border-primary bg-primary/5" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50"
+                                            }`}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                                        onDragLeave={() => setDragging(false)}
+                                        onDrop={handleDrop}
                                     >
-                                        {isSubmitting ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
-                                    </Button>
-                                    <Button variant="ghost" onClick={clearCart} className="w-full mt-4 text-gray-500 hover:text-red-500">
-                                        ล้างตะกร้าสินค้า
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                        />
+
+                                        {prescriptionFile ? (
+                                            <div className="flex items-center gap-3 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100">
+                                                <FileCheck className="w-5 h-5" />
+                                                <span className="font-semibold text-sm truncate max-w-[200px]">{prescriptionFile.name}</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-1">
+                                                    <Upload className="w-6 h-6 text-slate-500" />
+                                                </div>
+                                                <p className="font-semibold text-slate-700">คลิกเพื่ออัปโหลด <span className="text-slate-500 font-normal">หรือลากไฟล์มาวาง</span></p>
+                                                <p className="text-xs text-slate-400">รองรับ JPG, PNG หรือ WEBP (ไม่เกิน 5MB)</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    {prescriptionFile && (
+                                        <div className="mt-3 text-right">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setPrescriptionFile(null); }}
+                                                className="text-xs font-semibold text-rose-500 hover:text-rose-600"
+                                            >
+                                                ลบไฟล์ที่เลือก
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Column: Order Summary */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 sticky top-24 p-6">
+                            <h2 className="text-xl font-bold text-slate-900 mb-6">สรุปคำสั่งซื้อ</h2>
+                            <div className="space-y-4">
+                                <div className="flex justify-between text-slate-600">
+                                    <span>ยอดรวม ({activeItems.reduce((sum, item) => sum + item.quantity, 0)} ชิ้น)</span>
+                                    <span className="font-medium text-slate-900">฿{calculateTotal().toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-slate-600">
+                                    <span>ค่าจัดส่ง</span>
+                                    <span className="font-medium text-emerald-600">ฟรี</span>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                                    <span className="text-lg font-bold text-slate-900">ยอดรวมทั้งสิ้น</span>
+                                    <span className="text-3xl font-black text-primary">
+                                        ฿{calculateTotal().toLocaleString()}
+                                    </span>
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-100 space-y-5">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">ที่อยู่จัดส่ง <span className="text-rose-500">*</span></label>
+                                        <textarea
+                                            placeholder="กรอกที่อยู่สำหรับจัดส่งสินค้า..."
+                                            className="w-full min-h-[100px] p-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50 placeholder:text-slate-400"
+                                            value={shippingAddress}
+                                            onChange={(e) => setShippingAddress(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">หมายเหตุถึงร้านค้า <span className="text-slate-400 font-normal">(ถ้ามี)</span></label>
+                                        <textarea
+                                            placeholder="ฝากบอกเภสัชกร หรือรายละเอียดเพิ่มเติม..."
+                                            className="w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50 placeholder:text-slate-400"
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                className="w-full mt-8 bg-primary hover:bg-primary/90 text-white font-bold text-lg py-6 rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                onClick={handleCheckout}
+                                disabled={isSubmitting || (requiresPrescription && !prescriptionFile) || !shippingAddress.trim() || activeItems.length === 0}
+                            >
+                                {isSubmitting ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        กำลังดำเนินการ...
+                                    </div>
+                                ) : 'ยืนยันการสั่งซื้อ'}
+                            </Button>
+
+                            {!isBuyNowMode && activeItems.length > 0 && (
+                                <button
+                                    onClick={clearCart}
+                                    disabled={isSubmitting}
+                                    className="w-full mt-4 text-sm font-semibold text-slate-400 hover:text-rose-500 transition-colors"
+                                >
+                                    ล้างตะกร้าสินค้า
+                                </button>
+                            )}
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

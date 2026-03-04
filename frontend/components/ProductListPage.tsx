@@ -161,16 +161,12 @@ export default function ProductListPage() {
             return;
         }
 
-        const existingItem = cart.find(item => item.productId === product.id);
-        const currentQty = existingItem ? existingItem.quantity : 0;
-
-        if (currentQty + 1 > product.stockQuantity) {
-            router.push('/checkout');
+        if (product.stockQuantity < 1) {
+            toast.error('สินค้าหมดชั่วคราว');
             return;
         }
 
-        addToCart(product.id, 1);
-        router.push('/checkout');
+        router.push(`/cart?buyNow=${product.id}`);
     };
 
     const clearFilters = () => {

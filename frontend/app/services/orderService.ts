@@ -59,4 +59,15 @@ export const orderService = {
             body: JSON.stringify({ items }),
         });
     },
+
+    // Submit payment for an order
+    submitPayment: async (
+        id: string,
+        data: { method: 'BANK_TRANSFER' | 'PROMPTPAY'; slipUrl: string; note?: string },
+    ): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/payment`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
 };

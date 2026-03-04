@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderStatus, PaymentStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Product } from '../products/entities/products.entity';
 import { Cart } from '../cart/entities/cart.entity';
@@ -284,22 +284,15 @@ export class OrdersService {
             throw new ForbiddenException('This order does not belong to you');
         }
 
-        const hasPaidTag = (order.notes ?? '').includes('[PAYMENT_SUBMITTED]');
-        if (hasPaidTag) {
-            throw new BadRequestException('Payment already submitted');
+        if (order.paymentStatus && order.paymentStatus !== PaymentStatus.UNPAID && order.paymentStatus !== PaymentStatus.REJECTED) {
+            throw new BadRequestException('Payment already submitted or approved');
         }
 
-        const paymentText = [
-            '[PAYMENT_SUBMITTED]',
-            `method=${payload.method}`,
-            `slipUrl=${payload.slipUrl}`,
-            `note=${payload.note ?? ''}`,
-            `paidAt=${new Date().toISOString()}`,
-        ].join(' | ');
-
-        order.notes = order.notes
-            ? `${order.notes}\n${paymentText}`
-            : paymentText;
+        order.paymentMethod = payload.method;
+        order.paymentSlipUrl = payload.slipUrl;
+        order.paymentNote = payload.note;
+        order.paidAt = new Date();
+        order.paymentStatus = PaymentStatus.PENDING_REVIEW;
 
         await this.orderRepository.save(order);
         return this.findOne(orderId);
