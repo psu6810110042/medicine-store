@@ -4,34 +4,36 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useRouter } from 'next/navigation';
 
 export interface User {
-    id: string;
-    email: string;
-    phone: string;
-    fullName: string;
-    role: "customer" | "pharmacist" | "admin";
-    address?: {
-        street: string;
-        district: string;
-        province: string;
-        postalCode: string;
-    };
-    healthData?: {
-        allergies: string[];
-        chronicDiseases: string[];
-        currentMedications: string[];
-    };
+  id: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  role: "customer" | "pharmacist" | "admin";
+  address?: {
+    street: string;
+    subDistrict: string;
+    district: string;
+    province: string;
+    postalCode: string;
+  };
+  healthData?: {
+    allergies: string[];
+    chronicDiseases: string[];
+    currentMedications: string[];
+  };
 }
 
 interface AuthContextType {
-    user: User | null;
-    login: (email: string, password: string) => Promise<boolean>;
-    logout: () => Promise<void>;
-    checkAuth: () => Promise<void>;
-    isLoading: boolean;
-    isLoginModalOpen: boolean;
-    setIsLoginModalOpen: (isOpen: boolean) => void;
-    isRegisterModalOpen: boolean;
-    setIsRegisterModalOpen: (isOpen: boolean) => void;
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<boolean>;
+  isLoading: boolean;
+  isLoginModalOpen: boolean;
+  setIsLoginModalOpen: (isOpen: boolean) => void;
+  isRegisterModalOpen: boolean;
+  setIsRegisterModalOpen: (isOpen: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,103 +43,128 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const router = useRouter();
 
-    const checkAuth = useCallback(async () => {
-        try {
-            const res = await fetch(`${API_URL}/auth/me`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // Important for cookies
-            });
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for cookies
+      });
 
-            if (res.ok) {
-                const userData = await res.json();
-                setUser(userData);
-            } else {
-                setUser(null);
-            }
-        } catch (error) {
-            console.error('Check auth error:', error);
-            setUser(null);
-        } finally {
-            setIsLoading(false);
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Check auth error:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+
+        // Role-based redirect
+        if (userData.role === 'admin') {
+          router.push('/admin');
+        } else if (userData.role === 'pharmacist') {
+          router.push('/pharmacy');
         }
-    }, []);
 
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  };
 
-    const login = async (email: string, password: string): Promise<boolean> => {
-        try {
-            const res = await fetch(`${API_URL}/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-                credentials: 'include',
-            });
+  const logout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('cart'); // Specifically remove cart
+      localStorage.clear();
+      window.location.href = '/';
+    }
+  };
 
-            if (res.ok) {
-                const userData = await res.json();
-                setUser(userData);
+  const updateProfile = async (data: Partial<User>): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_URL}/users/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
 
-                // Role-based redirect
-                if (userData.role === 'admin') {
-                    router.push('/admin');
-                } else if (userData.role === 'pharmacist') {
-                    router.push('/pharmacy');
-                }
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUser(updatedUser);
+        return true;
+      } else {
+        console.error('Update profile failed', await res.text());
+        return false;
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return false;
+    }
+  };
 
-                return true;
-            } else {
-                return false;
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            return false;
-        }
-    };
+  // Check auth on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-    const logout = async () => {
-        try {
-            await fetch(`${API_URL}/auth/logout`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            localStorage.removeItem('cart'); // Specifically remove cart
-            localStorage.clear();
-            window.location.href = '/';
-        }
-    };
-
-    // Check auth on mount
-    useEffect(() => {
-        checkAuth();
-    }, [checkAuth]);
-
-    return (
-        <AuthContext.Provider value={{
-            user, login, logout, checkAuth, isLoading,
-            isLoginModalOpen, setIsLoginModalOpen,
-            isRegisterModalOpen, setIsRegisterModalOpen
-        }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{
+      user, login, logout, checkAuth, updateProfile, isLoading,
+      isLoginModalOpen, setIsLoginModalOpen,
+      isRegisterModalOpen, setIsRegisterModalOpen
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
 };
