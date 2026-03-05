@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf, UserCircle } from 'lucide-react';
+import { Search, Tag, TrendingUp, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf, UserCircle, ShieldCheck, UserCheck, Truck, BadgePercent, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -133,10 +133,10 @@ function StoreContent() {
                                 key={category.id}
                                 className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 bg-white/60 backdrop-blur-md border-white/20"
                                 onClick={() => {
-                                  const searchParams = new URLSearchParams();
-                                  searchParams.set('category', category.id.toString());
+                                    const searchParams = new URLSearchParams();
+                                    searchParams.set('category', category.id.toString());
 
-                                  router.push(`/products?${searchParams.toString()}`);
+                                    router.push(`/products?${searchParams.toString()}`);
                                 }}
                             >
                                 <CardContent className="p-6 text-center">
@@ -154,7 +154,7 @@ function StoreContent() {
                 <section className="mb-16">
                     <div className="flex items-center gap-2 mb-6">
                         <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                            <Tag className="w-5 h-5 text-red-500" />
+                            <BadgePercent className="w-5 h-5 text-red-500" />
                         </div>
                         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">โปรโมชั่นพิเศษ</h2>
                     </div>
@@ -172,7 +172,7 @@ function StoreContent() {
                                 <Card
                                     key={product.id}
                                     className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                                        onClick={() => router.push(`/products/${product.id}`)}
+                                    onClick={() => router.push(`/products/${product.id}`)}
                                 >
                                     <div className="relative bg-white/50 h-48 p-4">
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -210,7 +210,7 @@ function StoreContent() {
                 <section className="mb-16">
                     <div className="flex items-center gap-2 mb-6">
                         <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                            <TrendingUp className="w-5 h-5 text-green-500" />
+                            <Star className="w-5 h-5 text-green-500" />
                         </div>
                         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">สินค้าแนะนำ</h2>
                     </div>
@@ -225,7 +225,7 @@ function StoreContent() {
                                 <Card
                                     key={product.id}
                                     className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                                        onClick={() => router.push(`/products/${product.id}`)}
+                                    onClick={() => router.push(`/products/${product.id}`)}
                                 >
                                     <div className="relative bg-white/50 h-48 p-4">
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -264,21 +264,21 @@ function StoreContent() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-8">
                         <div className="text-center group">
                             <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                <Sparkles className="w-8 h-8" />
+                                <ShieldCheck className="w-8 h-8" />
                             </div>
                             <h3 className="font-bold mb-2 text-lg">ยารับรองคุณภาพ</h3>
                             <p className="text-muted-foreground">สินค้าทุกรายการผ่านการรับรองจาก อย.</p>
                         </div>
                         <div className="text-center group">
                             <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                <Stethoscope className="w-8 h-8" />
+                                <UserCheck className="w-8 h-8" />
                             </div>
                             <h3 className="font-bold mb-2 text-lg">เภสัชกรมืออาชีพ</h3>
                             <p className="text-muted-foreground">ตรวจสอบคำสั่งซื้อโดยเภสัชกรผู้เชี่ยวชาญ</p>
                         </div>
                         <div className="text-center group">
                             <div className="bg-primary/10 text-primary rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                <Activity className="w-8 h-8" />
+                                <Truck className="w-8 h-8" />
                             </div>
                             <h3 className="font-bold mb-2 text-lg">จัดส่งรวดเร็ว</h3>
                             <p className="text-muted-foreground">ส่งถึงบ้านคุณภายใน 24-48 ชั่วโมง</p>
