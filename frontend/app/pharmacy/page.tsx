@@ -7,6 +7,7 @@ import { orderService } from "@/app/services/orderService";
 import { Order, OrderItem, OrderStatus } from "@/app/types/order";
 import { Product } from "@/app/types/product";
 import { toast } from "sonner";
+import { productService } from "@/app/services/productService";
 const statusLabel: Record<OrderStatus, string> = {
     PENDING_REVIEW: "รอตรวจสอบ",
     PRESCRIPTION: "รอตรวจสอบใบสั่งยา",
@@ -26,17 +27,26 @@ export default function PharmacyPage() {
 
     // ✅ Refresh states (ใช้ให้ UI รีเฟรชได้ทุกฟังก์ชัน)
     const [refreshing, setRefreshing] = useState(false);
+    const [stockCount, setStockCount] = useState<number>(0);
 
     const fetchAllOrders = async () => {
         try {
             setRefreshing(true);
-            const data = await orderService.getOrders();
+            const [ordersData, productsData] = await Promise.all([
+                orderService.getOrders(),
+                productService.getProducts()
+            ]);
             // Sort by newest first
-            const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            const sortedData = ordersData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             setOrders(sortedData);
+
+            // Calculate total stock
+            const parsedProducts = Array.isArray(productsData) ? productsData : ((productsData as any).data ?? []);
+            const totalStock = parsedProducts.reduce((sum: number, p: Product) => sum + (Number((p as any).stockQuantity) || 0), 0);
+            setStockCount(totalStock);
         } catch (error) {
-            console.error("Failed to fetch orders:", error);
-            toast.error("ไม่สามารถดึงข้อมูลคำสั่งซื้อได้");
+            console.error("Failed to fetch data:", error);
+            toast.error("ไม่สามารถดึงข้อมูลได้");
         } finally {
             setRefreshing(false);
         }
@@ -94,10 +104,10 @@ export default function PharmacyPage() {
             delivered,
             cancelled,
             total: orders.length,
-            sales: orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
-            stockCount: 805, // Can be updated if needed
+            sales: orders.filter((o) => o.status !== OrderStatus.CANCELLED).reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
+            stockCount: stockCount,
         };
-    }, [orders]);
+    }, [orders, stockCount]);
 
     return (
         <div className="min-h-screen bg-slate-50">

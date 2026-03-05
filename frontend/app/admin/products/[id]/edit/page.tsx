@@ -34,7 +34,11 @@ export default function EditProductPage() {
                     categoryService.getCategories(),
                 ]);
                 setProduct(productData);
-                setFormData(productData);
+                setFormData({
+                    ...productData,
+                    price: productData.price ? Number(productData.price) : 0,
+                    stockQuantity: productData.stockQuantity ? Number(productData.stockQuantity) : 0,
+                });
                 setCategories(categoriesData);
             } catch (err) {
                 console.error('Failed to fetch data:', err);

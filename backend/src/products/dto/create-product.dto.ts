@@ -1,4 +1,5 @@
 import { IsString, IsNumber, IsBoolean, IsOptional, IsNotEmpty, Min, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
     @IsString()
@@ -14,6 +15,7 @@ export class CreateProductDto {
     categoryId: string;
 
     @IsNumber()
+    @Type(() => Number)
     @Min(0)
     price: number;
 
@@ -46,6 +48,7 @@ export class CreateProductDto {
     requiresPrescription?: boolean;
 
     @IsNumber()
+    @Type(() => Number)
     @Min(0)
     @IsOptional()
     stockQuantity?: number;
