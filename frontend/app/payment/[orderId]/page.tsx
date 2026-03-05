@@ -185,6 +185,9 @@ export default function PaymentPage() {
         };
       });
       showToast("ส่งหลักฐานเรียบร้อย ✅ รอร้านตรวจสอบ");
+      setTimeout(() => {
+        router.push("/profile");
+      }, 1500);
     } catch (e: any) {
       console.error(e);
       showToast(e.message || "ส่งหลักฐานไม่สำเร็จ ลองใหม่อีกครั้ง");

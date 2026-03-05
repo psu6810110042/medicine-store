@@ -763,7 +763,7 @@ export default function ProfilePage() {
                         {order.status.toUpperCase() === 'PENDING_REVIEW' && (
                           <div className="mt-5 border-t pt-4 text-right">
                             <button
-                              onClick={() => router.push(`/orders/${order.id}`)}
+                              onClick={() => router.push(`/payment/${order.id}`)}
                               className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
                             >
                               ดูรายละเอียด / ชำระเงิน
