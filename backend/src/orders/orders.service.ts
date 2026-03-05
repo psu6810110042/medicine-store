@@ -331,6 +331,9 @@ export class OrdersService {
     }
 
     order.paymentStatus = payload.status;
+    if (payload.status === PaymentStatus.REJECTED) {
+      order.status = OrderStatus.CANCELLED;
+    }
     if (payload.note) {
       order.paymentNote = order.paymentNote
         ? `${order.paymentNote}\nAdmin: ${payload.note}`

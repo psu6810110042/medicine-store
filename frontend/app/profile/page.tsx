@@ -265,7 +265,7 @@ export default function ProfilePage() {
 
     const labels: { [key: string]: string } = {
       PENDING_REVIEW: 'รอตรวจสอบ/รอชำระเงิน',
-      PRESCRIPTION: 'รอเภสัชกรจัดยา',
+      PRESCRIPTION: 'รอเภสัชกรอนุมัติใบสั่งยา',
       STOCK: 'ตรวจสอบแล้ว',
       PROCESSING: 'กำลังเตรียมสินค้า / จัดส่ง',
       DONE: 'ส่งสำเร็จ',
@@ -291,7 +291,7 @@ export default function ProfilePage() {
 
     const steps = [
       { id: 'PENDING_REVIEW', name: 'รอตรวจสอบ', icon: Clock },
-      { id: 'PRESCRIPTION', name: 'รอเภสัชกรจัดยา', icon: FileText },
+      { id: 'PRESCRIPTION', name: 'รอเภสัชกรอนุมัติใบสั่งยา', icon: FileText },
       { id: 'STOCK', name: 'ตรวจสอบแล้ว', icon: CheckCircle2 },
       { id: 'PROCESSING', name: 'กำลังเตรียมสินค้า', icon: Package },
       { id: 'DONE', name: 'จัดส่งแล้ว', icon: Truck },
@@ -761,6 +761,20 @@ export default function ProfilePage() {
                           </div>
                         )}
 
+                        {/* Waiting-for-pharmacist banner (prescription order not yet approved) */}
+                        {order.status.toUpperCase() === 'PRESCRIPTION' && (
+                          <div className="mt-5 border-t pt-4">
+                            <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 p-4">
+                              <FileText className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-bold text-blue-800">รอการอนุมัติจากเภสัชกร</p>
+                                <p className="text-xs text-blue-600 mt-0.5">เภสัชกรกำลังตรวจสอบใบสั่งยาของคุณ เมื่ออนุมัติแล้ว ปุ่ม "ชำระเงิน" จะปรากฏที่นี่</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Pay Now — regular order (PENDING_REVIEW) */}
                         {order.status.toUpperCase() === 'PENDING_REVIEW' && (
                           <div className="mt-5 border-t pt-4 text-right">
                             <button
@@ -771,6 +785,22 @@ export default function ProfilePage() {
                             </button>
                           </div>
                         )}
+
+                        {/* Pay Now — prescription order approved by pharmacist, awaiting payment */}
+                        {order.status.toUpperCase() === 'PROCESSING' &&
+                          (!order.paymentStatus || order.paymentStatus === 'UNPAID') && (
+                            <div className="mt-5 border-t pt-4 flex items-center justify-between gap-3">
+                              <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                                ✅ เภสัชกรอนุมัติยาของคุณแล้ว — กรุณาชำระเงินเพื่อดำเนินการต่อ
+                              </p>
+                              <button
+                                onClick={() => router.push(`/payment/${order.id}`)}
+                                className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all"
+                              >
+                                ชำระเงิน
+                              </button>
+                            </div>
+                          )}
 
                       </div>
                     );
