@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Package, Clock, FileText, CheckCircle2, Truck, CheckCheck, Save, Edit2, X } from 'lucide-react';
+import { Package, Clock, FileText, CheckCircle2, Truck, Save, Edit2, X } from 'lucide-react';
+import { Order, OrderItem } from '@/app/types/order';
 
 type HealthDataState = {
   allergies: string[];
@@ -72,7 +73,7 @@ export default function ProfilePage() {
   const [currentMedsText, setCurrentMedsText] = useState('');
 
   // Orders State
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   // Sync state when user is loaded
@@ -118,7 +119,7 @@ export default function ProfilePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const sorted = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const sorted = data.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setOrders(sorted);
       }
     } catch (e) {
@@ -738,7 +739,7 @@ export default function ProfilePage() {
 
                         <div className="space-y-2">
                           <h5 className="text-sm font-bold text-slate-800 mb-3">รายการสินค้า</h5>
-                          {order.items?.map((item: any, idx: number) => (
+                          {order.items?.map((item: OrderItem, idx: number) => (
                             <div key={idx} className="flex justify-between text-sm items-center py-1">
                               <span className="text-slate-700">
                                 {item.product?.name || 'สินค้า'}

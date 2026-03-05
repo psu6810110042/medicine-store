@@ -41,6 +41,7 @@ export interface Order {
   paymentSlipUrl?: string;
   paymentNote?: string;
   paidAt?: string;
+  pharmacistNotes?: string;
   user?: {
     id: string;
     email: string;

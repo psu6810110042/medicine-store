@@ -41,7 +41,6 @@ export default function PaymentPage() {
   const [isFetching, setIsFetching] = useState(true);
 
   const orderId = params?.orderId ?? "UNKNOWN";
-  const displayName = user?.fullName ?? "ผู้ใช้งาน";
 
   const [order, setOrder] = useState<Order | null>(null);
 
@@ -188,9 +187,10 @@ export default function PaymentPage() {
       setTimeout(() => {
         router.push("/profile");
       }, 1500);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      showToast(e.message || "ส่งหลักฐานไม่สำเร็จ ลองใหม่อีกครั้ง");
+      const msg = e instanceof Error ? e.message : "ส่งหลักฐานไม่สำเร็จ ลองใหม่อีกครั้ง";
+      showToast(msg);
     } finally {
       setSubmitting(false);
     }

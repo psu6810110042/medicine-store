@@ -6,7 +6,6 @@ import { productService } from '@/app/services/productService';
 import { orderService } from '@/app/services/orderService';
 import { Product } from '@/app/types/product';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Upload, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 function CartContent() {
-  const { cart, updateQuantity, removeFromCart, removeItemsLocally, clearCart, getTotalItems } = useCart();
+  const { cart, updateQuantity, removeFromCart, removeItemsLocally, clearCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, updateProfile } = useAuth();
@@ -85,8 +84,6 @@ function CartContent() {
     }
   }, [user]);
 
-  const getProduct = (id: string) => products.find(p => p.id === id);
-
   // Get active items to render/checkout
   const activeItems = useMemo(() => {
     if (isBuyNowMode) {
@@ -97,6 +94,7 @@ function CartContent() {
         product: buyNowProduct
       }];
     }
+    const getProduct = (id: string) => products.find(p => p.id === id);
     return cart.map(item => ({
       productId: item.productId,
       quantity: item.quantity,
@@ -286,6 +284,7 @@ function CartContent() {
                 return (
                   <div key={item.productId} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex gap-4 transition-all hover:shadow-md">
                     <div className="w-24 h-24 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={product.image}
                         alt={product.name}

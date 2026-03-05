@@ -71,4 +71,15 @@ export const orderService = {
       body: JSON.stringify(data),
     });
   },
+
+  // Verify payment (admin only)
+  verifyPayment: async (
+    id: string,
+    data: { status: 'APPROVED' | 'REJECTED'; note?: string },
+  ): Promise<Order> => {
+    return fetchApi<Order>(`/orders/${id}/verify-payment`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };

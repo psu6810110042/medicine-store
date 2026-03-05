@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Pill, Menu, User } from 'lucide-react';
+import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Menu, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, CartItem } from '@/contexts/CartContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { productService } from '@/app/services/productService';
@@ -32,7 +32,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const loadCartProducts = async () => {
-      const ids = cart.map((item: any) => item.productId);
+      const ids = cart.map((item) => item.productId);
       if (ids.length === 0) {
         setCartProducts([]);
         return;
@@ -46,17 +46,14 @@ export default function Navbar() {
     };
     loadCartProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(cart.map((c: any) => c.productId).sort())]);
+  }, [JSON.stringify(cart.map((c) => c.productId).sort())]);
 
   const getTotalPrice = () => {
-    return cart.reduce((total: number, item: any) => {
-      const product = cartProducts.find((p: any) => p.id === item.productId);
+    return cart.reduce((total: number, item) => {
+      const product = cartProducts.find((p) => p.id === item.productId);
       return total + (product ? product.price * item.quantity : 0);
     }, 0);
   };
-
-  const isProductsPage = pathname?.startsWith('/products');
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -199,13 +196,14 @@ export default function Navbar() {
                       </div>
                     ) : (
                       <div className="space-y-4 pr-1">
-                        {cart.map((item: any) => {
-                          const product = cartProducts.find((p: any) => p.id === item.productId);
+                        {cart.map((item: CartItem) => {
+                          const product = cartProducts.find((p: Product) => p.id === item.productId);
                           if (!product) return null;
                           return (
                             <div key={product.id} className="flex gap-4 p-3 sm:p-4 rounded-2xl bg-white border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md transition-all group">
                               <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 p-2 overflow-hidden">
                                 {product.image ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
                                   <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply transition-transform group-hover:scale-105" />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-gray-300">
@@ -274,7 +272,7 @@ export default function Navbar() {
                   <Link href="/profile">
                     <Button variant="ghost" className="flex items-center gap-2 rounded-full px-4 hover:bg-gray-100">
                       <User className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">{(user as any).name || user.email}</span>
+                      <span className="text-sm font-medium">{(user as { name?: string }).name || user.email}</span>
                     </Button>
                   </Link>
                   <Button variant="outline" size="sm" onClick={handleLogout} className="rounded-full text-xs hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors">
@@ -344,7 +342,7 @@ export default function Navbar() {
                       <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
                         <UserCircle className="w-5 h-5" />
                       </div>
-                      บัญชีของฉัน ({(user as any).name || user.email})
+                      บัญชีของฉัน ({(user as { name?: string }).name || user.email})
                     </Link>
                     <button
                       onClick={handleLogout}
