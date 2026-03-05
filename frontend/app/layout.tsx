@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Medicine Store",
-    description: "Final Project: Medicine Store",
+    title: "MEDS Project",
+    description: "MEDS ร้านขายยาออนไลน์ บริการสั่งซื้อยา เครื่องมือแพทย์ และสินค้าเพื่อสุขภาพ พร้อมให้คำปรึกษาโดยเภสัชกร",
 };
 
 export default function RootLayout({

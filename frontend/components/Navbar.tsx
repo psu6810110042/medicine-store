@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Pill } from 'lucide-react';
+import Image from 'next/image';
+import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Pill, Menu, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-// Use local Product type or import from shared types when available
 import { productService } from '@/app/services/productService';
 import { Product } from '@/app/types/product';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ export default function Navbar() {
     const { cart, updateQuantity, removeFromCart, getTotalItems } = useCart();
     const { user, login, logout, isLoginModalOpen, setIsLoginModalOpen, isRegisterModalOpen, setIsRegisterModalOpen } = useAuth();
     const [cartProducts, setCartProducts] = useState<Product[]>([]);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Form states
     const [email, setEmail] = useState("");
@@ -36,14 +37,12 @@ export default function Navbar() {
                 return;
             }
             try {
-                const fetchedProducts = await productService.getProducts({}); // Or however we fetch it
+                const fetchedProducts = await productService.getProducts({});
                 setCartProducts(fetchedProducts);
             } catch (error) {
                 console.error('Failed to load cart products in navbar:', error);
             }
         };
-
-        // We fetch when cart ids change
         loadCartProducts();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(cart.map((c: any) => c.productId).sort())]);
@@ -85,8 +84,8 @@ export default function Navbar() {
 
             if (res.ok) {
                 setIsRegisterModalOpen(false);
-                setIsLoginModalOpen(true); // Switch to login
-                setPassword(""); // Clear password, keep email
+                setIsLoginModalOpen(true);
+                setPassword("");
             } else {
                 const data = await res.json();
                 setErrorMsg(data.message || "การสมัครสมาชิกขัดข้อง");
@@ -99,211 +98,333 @@ export default function Navbar() {
         }
     };
 
+    const handleLogout = () => {
+        logout();
+        router.push('/');
+        setMobileMenuOpen(false);
+    };
+
+    const isActive = (path: string) => {
+        if (path === '/' && pathname === '/') return true;
+        if (path !== '/' && pathname.startsWith(path)) return true;
+        return false;
+    };
+
+    const navigation = [
+        { name: 'หน้าแรก', path: '/' },
+        { name: 'สินค้าทั้งหมด', path: '/products' },
+        { name: 'สั่งยา', path: '/prescription' },
+    ];
+
     return (
         <>
-         <nav className="w-full border-b border-gray-200/50 bg-white/60 backdrop-blur-md sticky top-0 z-50">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <nav className="bg-white border-b sticky top-0 z-50 shadow-sm transition-all duration-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
 
-    {/* ✅ ซ้าย: บัญชีของฉัน -> /profile */}
-    <Link href="/profile" className="flex items-center gap-2 group p-2 rounded-xl hover:bg-gray-100/50 transition-all duration-300">
-      <div className="bg-primary/10 p-1.5 rounded-lg group-hover:bg-primary/20 transition-colors">
-        <UserCircle className="w-5 h-5 text-primary" />
-      </div>
-      <span className="font-semibold text-gray-700 group-hover:text-primary transition-colors">
-        บัญชีของฉัน
-      </span>
-    </Link>
-
-    {/* ✅ ขวา: เมนูอื่น ๆ ของคุณ (คงของเดิมไว้) */}
-    <div className="flex items-center gap-4 sm:gap-6">
-                        <div className="flex items-center gap-3">
-                            {user ? (
-                                <button
-                                    onClick={() => {
-                                        logout();
-                                        router.push('/');
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition-all"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    ออกจากระบบ
-                                </button>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => {
-                                            setErrorMsg("");
-                                            setIsLoginModalOpen(true);
-                                        }}
-                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
-                                    >
-                                        เข้าสู่ระบบ
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setErrorMsg("");
-                                            setIsRegisterModalOpen(true);
-                                        }}
-                                        className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full text-sm font-medium transition-all shadow-sm"
-                                    >
-                                        สมัครสมาชิก
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                        <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
-                        <Link
-                            href="/prescription"
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 rounded-full transition-all"
-                        >
-                            <Pill className="w-4 h-4" />
-                            สั่งยา
+                        {/* Logo */}
+                        <Link href="/" className="flex items-center gap-2 cursor-pointer group">
+                            <div className="relative w-10 h-10 flex items-center justify-center">
+                                <Image src="/logo.png" alt="MEDS Logo" fill className="object-contain" />
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-xl text-primary tracking-tight">MEDS</h1>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">ร้านขายยาออนไลน์</p>
+                            </div>
                         </Link>
-                        <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
-                        {isProductsPage ? (
-                            /* Cart Drawer from Navbar */
+
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-8">
+                            {navigation.map(item => (
+                                <Link
+                                    key={item.path}
+                                    href={item.path}
+                                    className={`text-sm font-medium transition-colors ${isActive(item.path)
+                                        ? 'text-primary'
+                                        : 'text-gray-600 hover:text-primary'
+                                        }`}
+                                >
+                                    {item.name}
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 sm:gap-4">
+
+                            {/* Desktop conditional menu or user profile elements */}
+                            {user && user.role !== 'customer' && (
+                                <Link
+                                    href={user.role === 'admin' ? '/admin' : '/dashboard'}
+                                    className="hidden md:block text-sm font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full transition-colors"
+                                >
+                                    {user.role === 'admin' ? '🔐 ระบบผู้ดูแล' : 'จัดการคำสั่งซื้อ'}
+                                </Link>
+                            )}
+
+                            {/* Cart Sheet Button */}
                             <Sheet>
                                 <SheetTrigger asChild>
-                                    <Button variant="outline" className="relative group border-gray-200 bg-white/50 hover:bg-gray-50/80">
-                                        <ShoppingCart className="w-4 h-4 mr-2 group-hover:text-primary transition-colors" />
-                                        ตะกร้า
+                                    <Button variant="ghost" size="icon" className="relative text-gray-700 hover:text-primary hover:bg-primary/5 transition-colors">
+                                        <ShoppingCart className="w-5 h-5" />
                                         {getTotalItems() > 0 && (
-                                            <Badge className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white rounded-full animate-in zoom-in">
+                                            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] animate-in zoom-in border-2 border-white">
                                                 {getTotalItems()}
                                             </Badge>
                                         )}
                                     </Button>
                                 </SheetTrigger>
-                                <SheetContent className="w-full sm:max-w-lg flex flex-col h-full bg-white/95 backdrop-blur-md border-l border-white/20">
-                                    <SheetHeader>
-                                        <SheetTitle className="flex items-center gap-2">
-                                            <ShoppingCart className="w-5 h-5" /> ตะกร้าสินค้าของคุณ ({getTotalItems()} ชิ้น)
+
+                                {/* Cart Sliding Drawer content */}
+                                <SheetContent className="w-full sm:max-w-lg flex flex-col h-full bg-white/95 backdrop-blur-md border-l border-white/20 p-0 sm:p-6">
+                                    <SheetHeader className="p-6 sm:p-0 border-b sm:border-0">
+                                        <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+                                            <ShoppingCart className="w-5 h-5 text-primary" /> ตะกร้าสินค้าของคุณ ({getTotalItems()} ชิ้น)
                                         </SheetTitle>
                                         <SheetDescription className="hidden">ตะกร้าสินค้าของคุณ</SheetDescription>
                                     </SheetHeader>
 
-                                    <div className="flex-1 mt-6 space-y-4 overflow-y-auto pr-2">
+                                    <div className="flex-1 overflow-y-auto w-full p-4 sm:p-0 sm:mt-6">
                                         {cart.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                                <div className="bg-gray-100/50 p-6 rounded-full mb-4">
-                                                    <ShoppingCart className="w-12 h-12 opacity-50 text-gray-400" />
+                                            <div className="flex flex-col items-center justify-center h-full text-gray-500 min-h-[50vh]">
+                                                <div className="bg-gray-50 p-6 rounded-full mb-4">
+                                                    <ShoppingCart className="w-12 h-12 opacity-30 text-gray-400" />
                                                 </div>
                                                 <p className="font-medium text-gray-600">ยังไม่มีสินค้าในตะกร้า</p>
-                                                <p className="text-sm text-gray-400 mt-1">เลือกซื้อสินค้าที่คุณต้องการได้เลย</p>
+                                                <p className="text-sm text-gray-400 mt-1">เริ่มค้นหาสินค้าที่ต้องการได้เลย</p>
+                                                <Button className="mt-6 rounded-full" onClick={() => router.push('/products')}>
+                                                    ไปเลือกซื้อสินค้า
+                                                </Button>
                                             </div>
                                         ) : (
-                                            cart.map((item: any) => {
-                                                const product = cartProducts.find((p: any) => p.id === item.productId);
-                                                if (!product) return null; // loading state essentially
-                                                return (
-                                                    <div key={product.id} className="flex gap-4 border-b border-gray-100 pb-4 group">
-                                                        <div className="w-20 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex-shrink-0 p-2">
-                                                            <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
-                                                        </div>
-                                                        <div className="flex-1 flex flex-col justify-between">
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h4>
-                                                                <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>
+                                            <div className="space-y-4 pr-1">
+                                                {cart.map((item: any) => {
+                                                    const product = cartProducts.find((p: any) => p.id === item.productId);
+                                                    if (!product) return null;
+                                                    return (
+                                                        <div key={product.id} className="flex gap-4 p-3 sm:p-4 rounded-2xl bg-white border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md transition-all group">
+                                                            <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 p-2 overflow-hidden">
+                                                                {product.image ? (
+                                                                    <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply transition-transform group-hover:scale-105" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                                        <Package className="w-8 h-8" />
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="flex items-center justify-between mt-3">
-                                                                <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
-                                                                    <button className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(product.id, item.quantity - 1)}>
-                                                                        <Minus className="w-3 h-3" />
-                                                                    </button>
-                                                                    <span className="text-sm font-semibold w-4 text-center">{item.quantity}</span>
-                                                                    <button
-                                                                        className="h-6 w-6 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        onClick={() => updateQuantity(product.id, item.quantity + 1)}
-                                                                        disabled={item.quantity >= product.stockQuantity}
-                                                                    >
-                                                                        <Plus className="w-3 h-3" />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="flex items-center gap-4">
-                                                                    <span className="font-bold text-primary">฿{(product.price * item.quantity).toLocaleString()}</span>
-                                                                    <button className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => removeFromCart(product.id)}>
+                                                            <div className="flex-1 flex flex-col justify-between py-1">
+                                                                <div className="pr-6 relative">
+                                                                    <h4 className="font-semibold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors pr-2 text-sm sm:text-base">{product.name}</h4>
+                                                                    {product.description && <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>}
+                                                                    <button className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" onClick={() => removeFromCart(product.id)}>
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </button>
                                                                 </div>
+                                                                <div className="flex items-center justify-between mt-3">
+                                                                    <div className="flex items-center gap-1 sm:gap-2 bg-gray-50 rounded-lg p-1 border border-gray-100">
+                                                                        <button className="h-6 w-6 sm:h-7 sm:w-7 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" onClick={() => updateQuantity(product.id, item.quantity - 1)}>
+                                                                            <Minus className="w-3 h-3" />
+                                                                        </button>
+                                                                        <span className="text-xs sm:text-sm font-semibold w-6 text-center">{item.quantity}</span>
+                                                                        <button
+                                                                            className="h-6 w-6 sm:h-7 sm:w-7 rounded-md bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                            onClick={() => updateQuantity(product.id, item.quantity + 1)}
+                                                                            disabled={item.quantity >= (product.stockQuantity || 0)}
+                                                                        >
+                                                                            <Plus className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="font-bold text-primary whitespace-nowrap text-sm sm:text-base">฿{(product.price * item.quantity).toLocaleString()}</div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })
+                                                    );
+                                                })}
+                                            </div>
                                         )}
                                     </div>
 
                                     {cart.length > 0 && (
-                                        <div className="pt-6 border-t mt-auto px-1 pb-4">
+                                        <div className="mt-auto border-t bg-white p-4 sm:p-0 sm:pt-6 sm:pb-4 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] sm:shadow-none z-10 w-full">
                                             <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                                                <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
+                                                <div className="flex justify-between items-center mb-1 text-sm text-gray-600">
                                                     <span>ยอดรวมสินค้า</span>
-                                                    <span>฿{getTotalPrice().toLocaleString()}</span>
+                                                    <span className="font-medium">฿{getTotalPrice().toLocaleString()}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center text-lg font-bold">
-                                                    <span className="text-gray-900">ยอดรวมทั้งสิ้น</span>
-                                                    <span className="text-primary text-2xl">฿{getTotalPrice().toLocaleString()}</span>
+                                                <div className="flex justify-between items-center border-t border-gray-200/60 mt-2 pt-2">
+                                                    <span className="text-gray-900 font-semibold">ยอดรวมทั้งสิ้น</span>
+                                                    <span className="text-primary text-xl font-bold">฿{getTotalPrice().toLocaleString()}</span>
                                                 </div>
                                             </div>
-                                            <Button className="w-full text-lg h-14 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity shadow-md" onClick={() => router.push('/cart')}>
-                                                ดำเนินการชำระเงิน <Zap className="w-5 h-5 ml-2 fill-current" />
+                                            <Button className="w-full text-base sm:text-lg h-12 sm:h-14 rounded-xl shadow-md" onClick={() => {
+                                                document.body.click(); // Close sheet hack
+                                                router.push('/cart');
+                                            }}>
+                                                ดำเนินการชำระเงิน <Zap className="w-4 h-4 sm:w-5 sm:h-5 ml-2 fill-current" />
                                             </Button>
                                         </div>
                                     )}
                                 </SheetContent>
                             </Sheet>
-                        ) : (
-                            <>
-                                <Link
-                                    href="/products"
-                                    className="text-sm font-medium text-gray-700 hover:text-primary transition-colors flex items-center gap-2"
-                                >
-                                    <Package className="w-4 h-4" />
-                                    สินค้าทั้งหมด
-                                </Link>
-                            </>
-                        )}
+
+                            {/* User Menu Desktop */}
+                            {user ? (
+                                <div className="hidden md:flex items-center gap-2 ml-2">
+                                    <Link href="/profile">
+                                        <Button variant="ghost" className="flex items-center gap-2 rounded-full px-4 hover:bg-gray-100">
+                                            <User className="w-4 h-4 text-primary" />
+                                            <span className="text-sm font-medium">{(user as any).name || user.email}</span>
+                                        </Button>
+                                    </Link>
+                                    <Button variant="outline" size="sm" onClick={handleLogout} className="rounded-full text-xs hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors">
+                                        ออกจากระบบ
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="hidden md:flex items-center gap-2 ml-2">
+                                    <Button variant="ghost" className="text-sm font-medium hover:bg-gray-100 rounded-full" onClick={() => setIsLoginModalOpen(true)}>
+                                        เข้าสู่ระบบ
+                                    </Button>
+                                    <Button className="text-sm font-medium rounded-full shadow-sm" onClick={() => setIsRegisterModalOpen(true)}>
+                                        สมัครสมาชิก
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Mobile Menu Button */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden text-gray-700 ml-1"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            >
+                                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                            </Button>
+                        </div>
                     </div>
+
+                    {/* Mobile Menu Dropdown */}
+                    {mobileMenuOpen && (
+                        <div className="md:hidden py-4 border-t animate-in slide-in-from-top-2 duration-200">
+                            <div className="flex flex-col gap-1 px-2">
+                                {navigation.map(item => (
+                                    <Link
+                                        key={item.path}
+                                        href={item.path}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={`flex items-center px-4 py-3 rounded-xl transition-colors ${isActive(item.path)
+                                            ? 'bg-primary/10 text-primary font-bold'
+                                            : 'text-gray-700 hover:bg-gray-50 font-medium'
+                                            }`}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                ))}
+
+                                {user && user.role !== 'customer' && (
+                                    <Link
+                                        href={user.role === 'admin' ? '/admin' : '/dashboard'}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center px-4 py-3 rounded-xl text-amber-700 hover:bg-amber-50 font-medium mt-2"
+                                    >
+                                        {user.role === 'admin' ? '🔐 ระบบผู้ดูแล (Admin Panel)' : 'จัดการคำสั่งซื้อ'}
+                                    </Link>
+                                )}
+
+                                <div className="h-px bg-gray-100 my-2 mx-4"></div>
+
+                                {user ? (
+                                    <>
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                                        >
+                                            <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
+                                                <UserCircle className="w-5 h-5" />
+                                            </div>
+                                            บัญชีของฉัน ({(user as any).name || user.email})
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 font-medium text-left w-full"
+                                        >
+                                            <div className="bg-red-100 p-1.5 rounded-lg text-red-600">
+                                                <LogOut className="w-5 h-5" />
+                                            </div>
+                                            ออกจากระบบ
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col gap-2 mt-2 px-2">
+                                        <Button
+                                            className="w-full justify-center h-12 rounded-xl text-base"
+                                            onClick={() => {
+                                                setIsLoginModalOpen(true);
+                                                setMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            เข้าสู่ระบบ
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-center h-12 rounded-xl text-base"
+                                            onClick={() => {
+                                                setIsRegisterModalOpen(true);
+                                                setMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            สมัครสมาชิก
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </nav>
 
             {/* Login Modal */}
             {isLoginModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">เข้าสู่ระบบ</h2>
-                                <button onClick={() => setIsLoginModalOpen(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-8">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">ยินดีต้อนรับกลับมา</h2>
+                                    <p className="text-sm text-gray-500 mt-1">เข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+                                </div>
+                                <button onClick={() => setIsLoginModalOpen(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors -mt-4 -mr-2">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {errorMsg && (
-                                <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
-                                    {errorMsg}
+                                <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex items-start gap-3">
+                                    <div className="mt-0.5"><Zap className="w-4 h-4 text-red-500" /></div>
+                                    <p>{errorMsg}</p>
                                 </div>
                             )}
 
-                            <form onSubmit={handleLoginSubmit} className="space-y-4">
+                            <form onSubmit={handleLoginSubmit} className="space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">อีเมล</label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="you@example.com"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">รหัสผ่าน</label>
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -312,22 +433,22 @@ export default function Navbar() {
                                     title="login_button"
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 mt-2"
+                                    className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold hover:bg-primary/90 transition-all disabled:opacity-70 mt-4 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
                                 >
                                     {isSubmitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                                 </button>
                             </form>
 
-                            <div className="mt-6 text-center text-sm text-gray-500">
+                            <div className="mt-8 pt-6 border-t border-gray-100 text-center text-sm font-medium text-gray-500">
                                 ยังไม่มีบัญชีใช่ไหม?{' '}
                                 <button
                                     onClick={() => {
                                         setIsLoginModalOpen(false);
                                         setIsRegisterModalOpen(true);
                                     }}
-                                    className="text-primary font-medium hover:underline"
+                                    className="text-primary hover:text-primary/80 transition-colors hover:underline decoration-2 underline-offset-4 font-bold"
                                 >
-                                    สมัครสมาชิก
+                                    สมัครสมาชิกที่นี่
                                 </button>
                             </div>
                         </div>
@@ -337,63 +458,67 @@ export default function Navbar() {
 
             {/* Register Modal */}
             {isRegisterModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">สมัครสมาชิก</h2>
-                                <button onClick={() => setIsRegisterModalOpen(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity overflow-y-auto">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 my-8 flex-shrink-0">
+                        <div className="p-8">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">สร้างบัญชีใหม่</h2>
+                                    <p className="text-sm text-gray-500 mt-1">เข้าร่วมกับเราเพื่อสุขภาพที่ดีกว่า</p>
+                                </div>
+                                <button onClick={() => setIsRegisterModalOpen(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors -mt-4 -mr-2">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {errorMsg && (
-                                <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
-                                    {errorMsg}
+                                <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex items-start gap-3">
+                                    <div className="mt-0.5"><Zap className="w-4 h-4 text-red-500" /></div>
+                                    <p>{errorMsg}</p>
                                 </div>
                             )}
 
                             <form onSubmit={handleRegisterSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ - นามสกุล</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">ชื่อ - นามสกุล</label>
                                     <input
                                         type="text"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="ชื่อจริง นามสกุล"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">อีเมล</label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="you@example.com"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">เบอร์โทรศัพท์</label>
                                     <input
                                         type="tel"
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="08X-XXX-XXXX"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">รหัสผ่าน</label>
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -402,22 +527,22 @@ export default function Navbar() {
                                     title="register_button"
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 mt-2"
+                                    className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold hover:bg-primary/90 transition-all disabled:opacity-70 mt-6 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
                                 >
                                     {isSubmitting ? 'กำลังลงทะเบียน...' : 'สมัครสมาชิก'}
                                 </button>
                             </form>
 
-                            <div className="mt-6 text-center text-sm text-gray-500">
+                            <div className="mt-8 pt-6 border-t border-gray-100 text-center text-sm font-medium text-gray-500">
                                 มีบัญชีอยู่แล้วใช่ไหม?{' '}
                                 <button
                                     onClick={() => {
                                         setIsRegisterModalOpen(false);
                                         setIsLoginModalOpen(true);
                                     }}
-                                    className="text-primary font-medium hover:underline"
+                                    className="text-primary hover:text-primary/80 transition-colors hover:underline decoration-2 underline-offset-4 font-bold"
                                 >
-                                    เข้าสู่ระบบ
+                                    เข้าสู่ระบบที่นี่
                                 </button>
                             </div>
                         </div>
@@ -427,3 +552,4 @@ export default function Navbar() {
         </>
     );
 }
+
