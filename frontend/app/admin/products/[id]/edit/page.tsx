@@ -25,6 +25,18 @@ export default function EditProductPage() {
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [formData, setFormData] = useState<Partial<Product>>({});
 
+    const normalizePrice = (value: number | string | null | undefined): number => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) return 0;
+        return Number(parsed.toFixed(2));
+    };
+
+    const normalizeStockQuantity = (value: number | string | null | undefined): number => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) return 0;
+        return Math.floor(parsed);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -36,8 +48,8 @@ export default function EditProductPage() {
                 setProduct(productData);
                 setFormData({
                     ...productData,
-                    price: productData.price ? Number(productData.price) : 0,
-                    stockQuantity: productData.stockQuantity ? Number(productData.stockQuantity) : 0,
+                    price: normalizePrice(productData.price),
+                    stockQuantity: normalizeStockQuantity(productData.stockQuantity),
                 });
                 setCategories(categoriesData);
             } catch (err) {
@@ -56,7 +68,11 @@ export default function EditProductPage() {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else if (name === 'price' || name === 'stockQuantity') {
-            setFormData(prev => ({ ...prev, [name]: Number(value) }));
+            if (name === 'price') {
+                setFormData(prev => ({ ...prev, price: normalizePrice(value === '' ? 0 : value) }));
+            } else {
+                setFormData(prev => ({ ...prev, stockQuantity: normalizeStockQuantity(value === '' ? 0 : value) }));
+            }
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -64,9 +80,15 @@ export default function EditProductPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const payload = {
+            ...formData,
+            price: normalizePrice(formData.price),
+            stockQuantity: normalizeStockQuantity(formData.stockQuantity),
+        };
+
         try {
             setSaving(true);
-            await productService.updateProduct(productId, formData);
+            await productService.updateProduct(productId, payload);
             alert('บันทึกสินค้าสำเร็จ');
             router.push('/admin/products');
         } catch (err) {
@@ -167,7 +189,7 @@ export default function EditProductPage() {
                                         <Input
                                             type="number"
                                             name="price"
-                                            value={formData.price || 0}
+                                            value={formData.price ?? 0}
                                             onChange={handleChange}
                                             min="0"
                                             step="0.01"
@@ -187,7 +209,7 @@ export default function EditProductPage() {
                                         <Input
                                             type="number"
                                             name="stockQuantity"
-                                            value={formData.stockQuantity || 0}
+                                            value={formData.stockQuantity ?? 0}
                                             onChange={handleChange}
                                             min="0"
                                             required

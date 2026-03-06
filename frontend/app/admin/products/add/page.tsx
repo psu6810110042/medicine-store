@@ -59,13 +59,29 @@ export default function AddProductPage() {
         setShowAddCategory(false);
     };
 
+    const normalizePrice = (value: number | string | null | undefined): number => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) return 0;
+        return Number(parsed.toFixed(2));
+    };
+
+    const normalizeStockQuantity = (value: number | string | null | undefined): number => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) return 0;
+        return Math.floor(parsed);
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else if (name === 'price' || name === 'stockQuantity') {
-            setFormData(prev => ({ ...prev, [name]: Number(value) }));
+            if (name === 'price') {
+                setFormData(prev => ({ ...prev, price: normalizePrice(value === '' ? 0 : value) }));
+            } else {
+                setFormData(prev => ({ ...prev, stockQuantity: normalizeStockQuantity(value === '' ? 0 : value) }));
+            }
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -77,9 +93,16 @@ export default function AddProductPage() {
             alert('กรุณากรอกข้อมูลที่จำเป็น');
             return;
         }
+
+        const payload = {
+            ...formData,
+            price: normalizePrice(formData.price),
+            stockQuantity: normalizeStockQuantity(formData.stockQuantity),
+        };
+
         try {
             setSaving(true);
-            await productService.createProduct(formData);
+            await productService.createProduct(payload);
             alert('เพิ่มสินค้าสำเร็จ');
             router.push('/admin/products');
         } catch (err) {

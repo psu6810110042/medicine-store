@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -47,5 +49,30 @@ export class UsersService {
         }
 
         return this.usersRepository.save(user);
+    }
+
+    async createByAdmin(createUserDto: CreateUserByAdminDto): Promise<User> {
+        const { role: _ignoredRole, ...payload } = createUserDto;
+        const hashedPassword = await bcrypt.hash(payload.password, 10);
+        const newUser = this.usersRepository.create({
+            ...payload,
+            password: hashedPassword,
+            role: UserRole.PHARMACIST,
+        });
+        return this.usersRepository.save(newUser);
+    }
+
+    async findAll(): Promise<User[]> {
+        return this.usersRepository.find({
+            select: ['id', 'email', 'fullName', 'phone', 'role', 'createdAt'],
+            order: { createdAt: 'DESC' },
+        });
+    }
+
+    async remove(id: string): Promise<void> {
+        const result = await this.usersRepository.delete(id);
+        if (result.affected === 0) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
     }
 }

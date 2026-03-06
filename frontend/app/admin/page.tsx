@@ -7,7 +7,7 @@ import { categoryService } from '../services/categoryService';
 import { Product, Category } from '../types/product';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Package, AlertCircle, ShieldAlert, TrendingUp, ArrowRight, Calendar, CreditCard } from 'lucide-react';
+import { Package, AlertCircle, ShieldAlert, TrendingUp, ArrowRight, Calendar, CreditCard, Users, UserPlus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Image from 'next/image';
 
@@ -110,6 +110,16 @@ export default function AdminDashboardPage() {
                         <p className="text-muted-foreground">ภาพรวมระบบคลังสินค้า</p>
                     </div>
                     <div className="flex gap-3">
+                        <Link href="/admin/users?createRole=pharmacist">
+                            <Button variant="outline" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50">
+                                <UserPlus className="h-4 w-4" /> เพิ่มเภสัชกร
+                            </Button>
+                        </Link>
+                        <Link href="/admin/users">
+                            <Button variant="outline" className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                                <Users className="h-4 w-4" /> จัดการผู้ใช้
+                            </Button>
+                        </Link>
                         <Link href="/admin/orders">
                             <Button variant="outline" className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
                                 <CreditCard className="h-4 w-4" /> ตรวจสอบสลิป
