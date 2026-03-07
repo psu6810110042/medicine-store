@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Put } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    UseGuards,
+    Request,
+    Put,
+} from '@nestjs/common';
 import { CartService } from './cart.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
@@ -6,7 +17,7 @@ import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
 
 @Controller('cart')
 export class CartController {
-    constructor(private readonly cartService: CartService) { }
+    constructor(private readonly cartService: CartService) {}
 
     @UseGuards(AuthenticatedGuard)
     @Get()
@@ -22,7 +33,10 @@ export class CartController {
 
     @UseGuards(AuthenticatedGuard)
     @Post('sync')
-    syncCart(@Request() req, @Body() items: { productId: string; quantity: number }[]) {
+    syncCart(
+        @Request() req,
+        @Body() items: { productId: string; quantity: number }[],
+    ) {
         return this.cartService.syncCart(req.user.id, items);
     }
 
@@ -33,7 +47,11 @@ export class CartController {
         @Param('itemId') itemId: string,
         @Body() updateCartItemDto: UpdateCartItemDto,
     ) {
-        return this.cartService.updateQuantity(req.user.id, itemId, updateCartItemDto);
+        return this.cartService.updateQuantity(
+            req.user.id,
+            itemId,
+            updateCartItemDto,
+        );
     }
 
     @UseGuards(AuthenticatedGuard)
@@ -55,6 +73,10 @@ export class CartController {
         @Param('productId') productId: string,
         @Body() body: { quantity: number },
     ) {
-        return this.cartService.updateQuantityByProductId(req.user.id, productId, body.quantity);
+        return this.cartService.updateQuantityByProductId(
+            req.user.id,
+            productId,
+            body.quantity,
+        );
     }
 }
