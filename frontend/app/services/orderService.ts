@@ -2,84 +2,84 @@ import { fetchApi } from '../../services/api';
 import { Order, OrderStatus } from '../types/order';
 
 export interface CreateOrderDto {
-  items: { productId: string; quantity: number }[];
-  shippingAddress?: {
-    street: string;
-    subDistrict: string;
-    district: string;
-    province: string;
-    postalCode: string;
-  };
-  notes?: string;
-  prescriptionImage?: string;
+    items: { productId: string; quantity: number }[];
+    shippingAddress?: {
+        street: string;
+        subDistrict: string;
+        district: string;
+        province: string;
+        postalCode: string;
+    };
+    notes?: string;
+    prescriptionImage?: string;
 }
 
 export interface UpdateOrderStatusDto {
-  status: OrderStatus;
+    status: OrderStatus;
 }
 
 export const orderService = {
-  // Create a new order
-  createOrder: async (data: CreateOrderDto): Promise<Order> => {
-    return fetchApi<Order>('/orders', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+    // Create a new order
+    createOrder: async (data: CreateOrderDto): Promise<Order> => {
+        return fetchApi<Order>('/orders', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
 
-  // Get all orders (for admin/pharmacist)
-  getOrders: async (): Promise<Order[]> => {
-    return fetchApi<Order[]>('/orders');
-  },
+    // Get all orders (for admin/pharmacist)
+    getOrders: async (): Promise<Order[]> => {
+        return fetchApi<Order[]>('/orders');
+    },
 
-  // Get orders for the current user
-  getMyOrders: async (): Promise<Order[]> => {
-    return fetchApi<Order[]>('/orders/my');
-  },
+    // Get orders for the current user
+    getMyOrders: async (): Promise<Order[]> => {
+        return fetchApi<Order[]>('/orders/my');
+    },
 
-  // Get order by ID
-  getOrderById: async (id: string): Promise<Order> => {
-    return fetchApi<Order>(`/orders/${id}`);
-  },
+    // Get order by ID
+    getOrderById: async (id: string): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}`);
+    },
 
-  // Update order status (for admin/pharmacist)
-  updateOrderStatus: async (id: string, status: OrderStatus): Promise<Order> => {
-    return fetchApi<Order>(`/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
-  },
+    // Update order status (for admin/pharmacist)
+    updateOrderStatus: async (id: string, status: OrderStatus): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+    },
 
-  // Add/replace items on a PRESCRIPTION order (pharmacist only)
-  addItemsToOrder: async (
-    id: string,
-    items: { productId: string; quantity: number }[],
-  ): Promise<Order> => {
-    return fetchApi<Order>(`/orders/${id}/items`, {
-      method: 'PATCH',
-      body: JSON.stringify({ items }),
-    });
-  },
+    // Add/replace items on a PRESCRIPTION order (pharmacist only)
+    addItemsToOrder: async (
+        id: string,
+        items: { productId: string; quantity: number }[],
+    ): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/items`, {
+            method: 'PATCH',
+            body: JSON.stringify({ items }),
+        });
+    },
 
-  // Submit payment for an order
-  submitPayment: async (
-    id: string,
-    data: { method: 'BANK_TRANSFER' | 'PROMPTPAY'; slipUrl: string; note?: string },
-  ): Promise<Order> => {
-    return fetchApi<Order>(`/orders/${id}/payment`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+    // Submit payment for an order
+    submitPayment: async (
+        id: string,
+        data: { method: 'BANK_TRANSFER' | 'PROMPTPAY'; slipUrl: string; note?: string },
+    ): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/payment`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
 
-  // Verify payment (admin only)
-  verifyPayment: async (
-    id: string,
-    data: { status: 'APPROVED' | 'REJECTED'; note?: string },
-  ): Promise<Order> => {
-    return fetchApi<Order>(`/orders/${id}/verify-payment`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+    // Verify payment (admin only)
+    verifyPayment: async (
+        id: string,
+        data: { status: 'APPROVED' | 'REJECTED'; note?: string },
+    ): Promise<Order> => {
+        return fetchApi<Order>(`/orders/${id}/verify-payment`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
 };

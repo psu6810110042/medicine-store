@@ -1,8 +1,8 @@
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+    ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -17,330 +17,330 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    private readonly dataSource: DataSource,
-  ) { }
+    constructor(
+        @InjectRepository(Order)
+        private readonly orderRepository: Repository<Order>,
+        @InjectRepository(Product)
+        private readonly productRepository: Repository<Product>,
+        private readonly dataSource: DataSource,
+    ) { }
 
-  async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-    const queryRunner = this.dataSource.createQueryRunner();
+    async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
+        const queryRunner = this.dataSource.createQueryRunner();
 
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-    try {
-      let totalAmount = 0;
-      const orderItemsToSave: OrderItem[] = [];
+        try {
+            let totalAmount = 0;
+            const orderItemsToSave: OrderItem[] = [];
 
-      const cart = await queryRunner.manager.findOne(Cart, {
-        where: { user: { id: userId } }
-      });
+            const cart = await queryRunner.manager.findOne(Cart, {
+                where: { user: { id: userId } }
+            });
 
-      for (const itemDto of createOrderDto.items) {
-        const product = await queryRunner.manager.findOne(Product, {
-          where: { id: itemDto.productId },
+            for (const itemDto of createOrderDto.items) {
+                const product = await queryRunner.manager.findOne(Product, {
+                    where: { id: itemDto.productId },
+                });
+
+                if (cart) {
+                    await queryRunner.manager.delete(CartItem, {
+                        cart: { id: cart.id },
+                        product: { id: itemDto.productId }
+                    });
+                }
+
+                if (!product) {
+                    throw new NotFoundException(`Product ${itemDto.productId} not found`);
+                }
+
+                if (product.stockQuantity < itemDto.quantity) {
+                    throw new BadRequestException(
+                        `Not enough stock for ${product.name}. Available: ${product.stockQuantity}`,
+                    );
+                }
+
+                product.stockQuantity -= itemDto.quantity;
+                if (product.stockQuantity === 0) {
+                    product.inStock = false;
+                }
+
+                await queryRunner.manager.save(product);
+
+                const orderItem = new OrderItem();
+                orderItem.product = product;
+                orderItem.quantity = itemDto.quantity;
+                orderItem.priceAtTime = product.price;
+
+                totalAmount += product.price * itemDto.quantity;
+                orderItemsToSave.push(orderItem);
+            }
+
+            const order = new Order();
+            order.user = { id: userId } as any;
+            order.totalAmount = totalAmount;
+            order.prescriptionImage = createOrderDto.prescriptionImage;
+            order.shippingAddress = createOrderDto.shippingAddress;
+            order.notes = createOrderDto.notes;
+            order.items = orderItemsToSave;
+
+            if (createOrderDto.prescriptionImage) {
+                order.status = OrderStatus.PRESCRIPTION;
+            }
+
+            const savedOrder = await queryRunner.manager.save(Order, order);
+
+            await queryRunner.commitTransaction();
+
+            return this.findOne(savedOrder.id);
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    async findAll(): Promise<Order[]> {
+        return this.orderRepository.find({
+            relations: ['user', 'items', 'items.product'],
+            order: { createdAt: 'DESC' },
+        });
+    }
+
+    async findByUser(userId: string): Promise<Order[]> {
+        return this.orderRepository.find({
+            where: { user: { id: userId } },
+            relations: ['items', 'items.product'],
+            order: { createdAt: 'DESC' },
+        });
+    }
+
+    async findOne(id: string): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id },
+            relations: ['user', 'items', 'items.product'],
         });
 
-        if (cart) {
-          await queryRunner.manager.delete(CartItem, {
-            cart: { id: cart.id },
-            product: { id: itemDto.productId }
-          });
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${id} not found`);
         }
 
-        if (!product) {
-          throw new NotFoundException(`Product ${itemDto.productId} not found`);
+        return order;
+    }
+
+    async updateStatus(
+        id: string,
+        updateOrderStatusDto: UpdateOrderStatusDto,
+    ): Promise<Order> {
+        const order = await this.findOne(id);
+
+        if (
+            (order.status === OrderStatus.PROCESSING || order.status === OrderStatus.STOCK) &&
+            updateOrderStatusDto.status === OrderStatus.DONE
+        ) {
+            if (order.paymentStatus !== PaymentStatus.APPROVED) {
+                throw new BadRequestException('ไม่สามารถดำเนินการต่อได้: แอดมินยังไม่ได้ตรวจสอบและยืนยันบิลชำระเงิน');
+            }
         }
 
-        if (product.stockQuantity < itemDto.quantity) {
-          throw new BadRequestException(
-            `Not enough stock for ${product.name}. Available: ${product.stockQuantity}`,
-          );
+        order.status = updateOrderStatusDto.status;
+
+        if (updateOrderStatusDto.status === OrderStatus.CANCELLED) {
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+                for (const item of order.items) {
+                    const product = await queryRunner.manager.findOne(Product, {
+                        where: { id: item.productId },
+                    });
+
+                    if (product) {
+                        product.stockQuantity += item.quantity;
+                        product.inStock = true;
+                        await queryRunner.manager.save(product);
+                    }
+                }
+                await queryRunner.manager.save(Order, order);
+                await queryRunner.commitTransaction();
+            } catch (err) {
+                await queryRunner.rollbackTransaction();
+                throw err;
+            } finally {
+                await queryRunner.release();
+            }
+        } else {
+            await this.orderRepository.save(order);
         }
 
-        product.stockQuantity -= itemDto.quantity;
-        if (product.stockQuantity === 0) {
-          product.inStock = false;
+        return order;
+    }
+
+    async addItemsToOrder(
+        id: string,
+        dto: AddItemsToOrderDto,
+    ): Promise<Order> {
+        const order = await this.findOne(id);
+
+        if (order.status !== OrderStatus.PRESCRIPTION) {
+            throw new BadRequestException(
+                'Items can only be added to orders with PRESCRIPTION status',
+            );
         }
 
-        await queryRunner.manager.save(product);
-
-        const orderItem = new OrderItem();
-        orderItem.product = product;
-        orderItem.quantity = itemDto.quantity;
-        orderItem.priceAtTime = product.price;
-
-        totalAmount += product.price * itemDto.quantity;
-        orderItemsToSave.push(orderItem);
-      }
-
-      const order = new Order();
-      order.user = { id: userId } as any;
-      order.totalAmount = totalAmount;
-      order.prescriptionImage = createOrderDto.prescriptionImage;
-      order.shippingAddress = createOrderDto.shippingAddress;
-      order.notes = createOrderDto.notes;
-      order.items = orderItemsToSave;
-
-      if (createOrderDto.prescriptionImage) {
-        order.status = OrderStatus.PRESCRIPTION;
-      }
-
-      const savedOrder = await queryRunner.manager.save(Order, order);
-
-      await queryRunner.commitTransaction();
-
-      return this.findOne(savedOrder.id);
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async findAll(): Promise<Order[]> {
-    return this.orderRepository.find({
-      relations: ['user', 'items', 'items.product'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async findByUser(userId: string): Promise<Order[]> {
-    return this.orderRepository.find({
-      where: { user: { id: userId } },
-      relations: ['items', 'items.product'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async findOne(id: string): Promise<Order> {
-    const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: ['user', 'items', 'items.product'],
-    });
-
-    if (!order) {
-      throw new NotFoundException(`Order with ID ${id} not found`);
-    }
-
-    return order;
-  }
-
-  async updateStatus(
-    id: string,
-    updateOrderStatusDto: UpdateOrderStatusDto,
-  ): Promise<Order> {
-    const order = await this.findOne(id);
-
-    if (
-      (order.status === OrderStatus.PROCESSING || order.status === OrderStatus.STOCK) &&
-      updateOrderStatusDto.status === OrderStatus.DONE
-    ) {
-      if (order.paymentStatus !== PaymentStatus.APPROVED) {
-        throw new BadRequestException('ไม่สามารถดำเนินการต่อได้: แอดมินยังไม่ได้ตรวจสอบและยืนยันบิลชำระเงิน');
-      }
-    }
-
-    order.status = updateOrderStatusDto.status;
-
-    if (updateOrderStatusDto.status === OrderStatus.CANCELLED) {
-      const queryRunner = this.dataSource.createQueryRunner();
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-
-      try {
-        for (const item of order.items) {
-          const product = await queryRunner.manager.findOne(Product, {
-            where: { id: item.productId },
-          });
-
-          if (product) {
-            product.stockQuantity += item.quantity;
-            product.inStock = true;
-            await queryRunner.manager.save(product);
-          }
+        if (!dto.items || dto.items.length === 0) {
+            throw new BadRequestException('At least one item is required');
         }
-        await queryRunner.manager.save(Order, order);
-        await queryRunner.commitTransaction();
-      } catch (err) {
-        await queryRunner.rollbackTransaction();
-        throw err;
-      } finally {
-        await queryRunner.release();
-      }
-    } else {
-      await this.orderRepository.save(order);
-    }
 
-    return order;
-  }
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-  async addItemsToOrder(
-    id: string,
-    dto: AddItemsToOrderDto,
-  ): Promise<Order> {
-    const order = await this.findOne(id);
+        try {
+            for (const existingItem of order.items) {
+                const product = await queryRunner.manager.findOne(Product, {
+                    where: { id: existingItem.productId },
+                });
+                if (product) {
+                    product.stockQuantity += existingItem.quantity;
+                    product.inStock = true;
+                    await queryRunner.manager.save(product);
+                }
+            }
 
-    if (order.status !== OrderStatus.PRESCRIPTION) {
-      throw new BadRequestException(
-        'Items can only be added to orders with PRESCRIPTION status',
-      );
-    }
+            await queryRunner.manager.delete(OrderItem, { orderId: id });
 
-    if (!dto.items || dto.items.length === 0) {
-      throw new BadRequestException('At least one item is required');
-    }
+            let totalAmount = 0;
+            const newItems: OrderItem[] = [];
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+            for (const itemDto of dto.items) {
+                const product = await queryRunner.manager.findOne(Product, {
+                    where: { id: itemDto.productId },
+                });
 
-    try {
-      for (const existingItem of order.items) {
-        const product = await queryRunner.manager.findOne(Product, {
-          where: { id: existingItem.productId },
-        });
-        if (product) {
-          product.stockQuantity += existingItem.quantity;
-          product.inStock = true;
-          await queryRunner.manager.save(product);
+                if (!product) {
+                    throw new NotFoundException(`Product ${itemDto.productId} not found`);
+                }
+
+                if (product.stockQuantity < itemDto.quantity) {
+                    throw new BadRequestException(
+                        `Not enough stock for ${product.name}. Available: ${product.stockQuantity}`,
+                    );
+                }
+
+                product.stockQuantity -= itemDto.quantity;
+                if (product.stockQuantity === 0) product.inStock = false;
+                await queryRunner.manager.save(product);
+
+                const item = new OrderItem();
+                item.order = { id } as Order;
+                item.product = product;
+                item.quantity = itemDto.quantity;
+                item.priceAtTime = product.price;
+
+                totalAmount += product.price * itemDto.quantity;
+                newItems.push(item);
+            }
+
+            for (const item of newItems) {
+                await queryRunner.manager
+                    .createQueryBuilder()
+                    .insert()
+                    .into(OrderItem)
+                    .values({
+                        orderId: id,
+                        productId: item.product.id,
+                        quantity: item.quantity,
+                        priceAtTime: item.priceAtTime,
+                    })
+                    .execute();
+            }
+
+            await queryRunner.manager.update(Order, id, { totalAmount });
+
+            await queryRunner.commitTransaction();
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        } finally {
+            await queryRunner.release();
         }
-      }
 
-      await queryRunner.manager.delete(OrderItem, { orderId: id });
+        return this.findOne(id);
+    }
 
-      let totalAmount = 0;
-      const newItems: OrderItem[] = [];
-
-      for (const itemDto of dto.items) {
-        const product = await queryRunner.manager.findOne(Product, {
-          where: { id: itemDto.productId },
+    async submitPayment(
+        orderId: string,
+        userId: string,
+        payload: {
+            method: 'BANK_TRANSFER' | 'PROMPTPAY';
+            note: string;
+            slipUrl: string;
+        },
+    ): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id: orderId },
+            relations: ['user', 'items', 'items.product'],
         });
 
-        if (!product) {
-          throw new NotFoundException(`Product ${itemDto.productId} not found`);
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${orderId} not found`);
         }
 
-        if (product.stockQuantity < itemDto.quantity) {
-          throw new BadRequestException(
-            `Not enough stock for ${product.name}. Available: ${product.stockQuantity}`,
-          );
+        if (order.user?.id !== userId) {
+            throw new ForbiddenException('This order does not belong to you');
         }
 
-        product.stockQuantity -= itemDto.quantity;
-        if (product.stockQuantity === 0) product.inStock = false;
-        await queryRunner.manager.save(product);
+        if (order.paymentStatus && order.paymentStatus !== PaymentStatus.UNPAID && order.paymentStatus !== PaymentStatus.REJECTED) {
+            throw new BadRequestException('Payment already submitted or approved');
+        }
 
-        const item = new OrderItem();
-        item.order = { id } as Order;
-        item.product = product;
-        item.quantity = itemDto.quantity;
-        item.priceAtTime = product.price;
+        order.paymentMethod = payload.method;
+        order.paymentSlipUrl = payload.slipUrl;
+        order.paymentNote = payload.note;
+        order.paidAt = new Date();
+        order.paymentStatus = PaymentStatus.PENDING_REVIEW;
 
-        totalAmount += product.price * itemDto.quantity;
-        newItems.push(item);
-      }
-
-      for (const item of newItems) {
-        await queryRunner.manager
-          .createQueryBuilder()
-          .insert()
-          .into(OrderItem)
-          .values({
-            orderId: id,
-            productId: item.product.id,
-            quantity: item.quantity,
-            priceAtTime: item.priceAtTime,
-          })
-          .execute();
-      }
-
-      await queryRunner.manager.update(Order, id, { totalAmount });
-
-      await queryRunner.commitTransaction();
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+        await this.orderRepository.save(order);
+        await this.orderRepository.save(order);
+        return this.findOne(orderId);
     }
 
-    return this.findOne(id);
-  }
+    async verifyPayment(
+        orderId: string,
+        adminId: string,
+        payload: {
+            status: PaymentStatus;
+            note?: string;
+        },
+    ): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id: orderId },
+            relations: ['user', 'items', 'items.product'],
+        });
 
-  async submitPayment(
-    orderId: string,
-    userId: string,
-    payload: {
-      method: 'BANK_TRANSFER' | 'PROMPTPAY';
-      note: string;
-      slipUrl: string;
-    },
-  ): Promise<Order> {
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: ['user', 'items', 'items.product'],
-    });
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${orderId} not found`);
+        }
 
-    if (!order) {
-      throw new NotFoundException(`Order with ID ${orderId} not found`);
+        if (payload.status !== PaymentStatus.APPROVED && payload.status !== PaymentStatus.REJECTED) {
+            throw new BadRequestException('Invalid payment verification status');
+        }
+
+        order.paymentStatus = payload.status;
+        if (payload.status === PaymentStatus.REJECTED) {
+            order.status = OrderStatus.CANCELLED;
+        }
+        if (payload.note) {
+            order.paymentNote = order.paymentNote
+                ? `${order.paymentNote}\nAdmin: ${payload.note}`
+                : `Admin: ${payload.note}`;
+        }
+
+        await this.orderRepository.save(order);
+        return this.findOne(orderId);
     }
-
-    if (order.user?.id !== userId) {
-      throw new ForbiddenException('This order does not belong to you');
-    }
-
-    if (order.paymentStatus && order.paymentStatus !== PaymentStatus.UNPAID && order.paymentStatus !== PaymentStatus.REJECTED) {
-      throw new BadRequestException('Payment already submitted or approved');
-    }
-
-    order.paymentMethod = payload.method;
-    order.paymentSlipUrl = payload.slipUrl;
-    order.paymentNote = payload.note;
-    order.paidAt = new Date();
-    order.paymentStatus = PaymentStatus.PENDING_REVIEW;
-
-    await this.orderRepository.save(order);
-    await this.orderRepository.save(order);
-    return this.findOne(orderId);
-  }
-
-  async verifyPayment(
-    orderId: string,
-    adminId: string,
-    payload: {
-      status: PaymentStatus;
-      note?: string;
-    },
-  ): Promise<Order> {
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: ['user', 'items', 'items.product'],
-    });
-
-    if (!order) {
-      throw new NotFoundException(`Order with ID ${orderId} not found`);
-    }
-
-    if (payload.status !== PaymentStatus.APPROVED && payload.status !== PaymentStatus.REJECTED) {
-      throw new BadRequestException('Invalid payment verification status');
-    }
-
-    order.paymentStatus = payload.status;
-    if (payload.status === PaymentStatus.REJECTED) {
-      order.status = OrderStatus.CANCELLED;
-    }
-    if (payload.note) {
-      order.paymentNote = order.paymentNote
-        ? `${order.paymentNote}\nAdmin: ${payload.note}`
-        : `Admin: ${payload.note}`;
-    }
-
-    await this.orderRepository.save(order);
-    return this.findOne(orderId);
-  }
 }
