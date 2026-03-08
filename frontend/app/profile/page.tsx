@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams} from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Package, Clock, FileText, CheckCircle2, Truck, Save, Edit2, X } from 'lucide-react';
 import { Order, OrderItem } from '@/app/types/order';
@@ -39,8 +39,15 @@ function toggleInList(list: string[], value: string) {
 export default function ProfilePage() {
     const router = useRouter();
     const { user, checkAuth, logout, updateProfile } = useAuth();
-
+    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'personal' | 'health' | 'orders'>('personal');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'orders' || tab === 'health' || tab === 'personal') {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     // Personal Info State
     const [isEditingPersonal, setIsEditingPersonal] = useState(false);

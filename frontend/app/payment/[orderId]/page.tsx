@@ -185,7 +185,7 @@ export default function PaymentPage() {
             });
             showToast("ส่งหลักฐานเรียบร้อย ✅ รอร้านตรวจสอบ");
             setTimeout(() => {
-                router.push("/profile");
+                router.push("/profile?tab=orders");
             }, 1500);
         } catch (e: unknown) {
             console.error(e);
