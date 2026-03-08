@@ -625,15 +625,16 @@ export default function ProfilePage() {
                                 </button>
                             </div>
                         </SectionCard>
-
-                        <SectionCard title="สรุปข้อมูลสุขภาพ (ที่บันทึกแล้ว)">
-                            <SummaryBox title="ประวัติการแพ้ยา" value={user.healthData?.allergies && user.healthData.allergies.length ? user.healthData.allergies.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'} />
-                            <SummaryBox title="โรคประจำตัว" value={user.healthData?.chronicDiseases && user.healthData.chronicDiseases.length ? user.healthData.chronicDiseases.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'} />
-                            <SummaryBox
-                                title="ยาที่ใช้อยู่"
-                                value={user.healthData?.currentMedications && user.healthData.currentMedications.length ? user.healthData.currentMedications.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'}
-                            />
-                        </SectionCard>
+                        <div className="h-fit">
+                            <SectionCard title="สรุปข้อมูลสุขภาพ (ที่บันทึกแล้ว)">
+                                <SummaryBox title="ประวัติการแพ้ยา" value={user.healthData?.allergies && user.healthData.allergies.length ? user.healthData.allergies.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'} />
+                                <SummaryBox title="โรคประจำตัว" value={user.healthData?.chronicDiseases && user.healthData.chronicDiseases.length ? user.healthData.chronicDiseases.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'} />
+                                <SummaryBox
+                                    title="ยาที่ใช้อยู่"
+                                    value={user.healthData?.currentMedications && user.healthData.currentMedications.length ? user.healthData.currentMedications.join(', ') : 'ยังไม่ได้ระบุ / ไม่มี'}
+                                />
+                            </SectionCard>
+                        </div>
                     </div>
                 )}
 
