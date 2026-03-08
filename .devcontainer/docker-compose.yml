@@ -1,7 +1,3 @@
-include:
-    - path: docker-compose.override.yml
-      required: false
-
 services:
     dev-container:
         build:
