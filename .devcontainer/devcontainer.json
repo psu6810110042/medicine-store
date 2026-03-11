@@ -6,13 +6,5 @@
     "shutdownAction": "stopCompose",
     "remoteUser": "node",
     "updateRemoteUserUID": true,
-    "forwardPorts": [
-        3000,
-        3001,
-        5432,
-        6379,
-        9000,
-        9001,
-        9323
-    ]
+    "forwardPorts": [3000, 3001, 5432, 6379, 9000, 9001, 9323]
 }
