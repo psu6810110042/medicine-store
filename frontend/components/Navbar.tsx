@@ -153,7 +153,7 @@ export default function Navbar() {
               {/* Desktop conditional menu or user profile elements */}
               {user && user.role !== 'customer' && (
                 <Link
-                  href={user.role === 'admin' ? '/admin' : '/dashboard'}
+                  href={user.role === 'admin' ? '/admin' : '/pharmacy'}
                   className="hidden md:block text-sm font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full transition-colors"
                 >
                   {user.role === 'admin' ? '🔐 ระบบผู้ดูแล' : 'จัดการคำสั่งซื้อ'}
@@ -322,7 +322,7 @@ export default function Navbar() {
 
                 {user && user.role !== 'customer' && (
                   <Link
-                    href={user.role === 'admin' ? '/admin' : '/dashboard'}
+                    href={user.role === 'admin' ? '/admin' : '/pharmacy'}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-4 py-3 rounded-xl text-amber-700 hover:bg-amber-50 font-medium mt-2"
                   >
