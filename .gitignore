@@ -1,4 +1,6 @@
 /reference
 node_modules/
 .DS_Store
+HEAD
 .devcontainer/docker-compose.override.yml
+e571301c6066c818414aac711f85e988ea2a84ef
