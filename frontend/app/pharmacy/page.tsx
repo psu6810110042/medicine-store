@@ -13,6 +13,11 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  Clock3,
+  Truck,
+  BadgeCheck,
+  Ban,
+  FileClock,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +37,39 @@ const statusLabel: Record<OrderStatus, string> = {
   STOCK: "รอสินค้า",
 };
 
+const statusBadgeMap: Record<
+  OrderStatus,
+  {
+    className: string;
+    icon: React.ReactNode;
+  }
+> = {
+  PENDING_REVIEW: {
+    className: "border-amber-200 bg-amber-100 text-amber-700",
+    icon: <Clock3 className="h-3.5 w-3.5" />,
+  },
+  PRESCRIPTION: {
+    className: "border-sky-200 bg-sky-100 text-sky-700",
+    icon: <FileClock className="h-3.5 w-3.5" />,
+  },
+  PROCESSING: {
+    className: "border-emerald-200 bg-emerald-100 text-emerald-700",
+    icon: <Truck className="h-3.5 w-3.5" />,
+  },
+  DONE: {
+    className: "border-green-200 bg-green-100 text-green-700",
+    icon: <BadgeCheck className="h-3.5 w-3.5" />,
+  },
+  CANCELLED: {
+    className: "border-rose-200 bg-rose-100 text-rose-700",
+    icon: <Ban className="h-3.5 w-3.5" />,
+  },
+  STOCK: {
+    className: "border-violet-200 bg-violet-100 text-violet-700",
+    icon: <Package className="h-3.5 w-3.5" />,
+  },
+};
+
 export default function PharmacyPage() {
   const [active, setActive] = useState<OrderStatus>(OrderStatus.PENDING_REVIEW);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -41,6 +79,7 @@ export default function PharmacyPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [stockCount, setStockCount] = useState<number>(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -106,7 +145,23 @@ export default function PharmacyPage() {
     await fetchAllOrders();
   };
 
-  const filtered = useMemo(() => orders.filter((o) => o.status === active), [orders, active]);
+  const filtered = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    return orders.filter((o) => {
+      const statusMatched = o.status === active;
+      if (!statusMatched) return false;
+      if (!keyword) return true;
+
+      const orderIdMatched = String(o.id).toLowerCase().includes(keyword);
+      const userMatched = (o.user?.email ?? "").toLowerCase().includes(keyword);
+      const itemMatched = (o.items ?? []).some((item) =>
+        (item.product?.name ?? "").toLowerCase().includes(keyword)
+      );
+
+      return orderIdMatched || userMatched || itemMatched;
+    });
+  }, [orders, active, searchTerm]);
 
   const summary = useMemo(() => {
     const pending = orders.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
@@ -156,13 +211,27 @@ export default function PharmacyPage() {
           </CardHeader>
         </Card>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard
             title="รอตรวจสอบ"
             value={summary.pending}
             accent="from-amber-500 to-orange-500"
             icon={<ClipboardList className="h-6 w-6" />}
             subtitle="คำสั่งซื้อที่ต้องตรวจ"
+          />
+          <StatCard
+            title="รอตรวจใบสั่งยา"
+            value={summary.prescription}
+            accent="from-indigo-500 to-purple-500"
+            icon={<FileClock className="h-6 w-6" />}
+            subtitle="ต้องตรวจใบสั่งแพทย์"
+          />
+          <StatCard
+            title="กำลังดำเนินการ"
+            value={summary.processing}
+            accent="from-teal-500 to-cyan-500"
+            icon={<Truck className="h-6 w-6" />}
+            subtitle="กำลังจัดยา"
           />
           <StatCard
             title="คำสั่งซื้อทั้งหมด"
@@ -187,10 +256,7 @@ export default function PharmacyPage() {
           />
         </section>
 
-        <Tabs
-          value={active}
-          onValueChange={(value) => setActive(value as OrderStatus)}
-        >
+        <Tabs value={active} onValueChange={(value) => setActive(value as OrderStatus)}>
           <TabsList className="flex h-auto flex-wrap gap-2 bg-transparent p-0">
             <TabsTrigger
               value={OrderStatus.PENDING_REVIEW}
@@ -242,23 +308,46 @@ export default function PharmacyPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className={[
-                "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
-                refreshing ? "cursor-not-allowed opacity-60" : "",
-              ].join(" ")}
-            >
-              {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
-            </button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="relative min-w-[260px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
+                  className="w-full rounded-xl border bg-white py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className={[
+                  "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
+                  refreshing ? "cursor-not-allowed opacity-60" : "",
+                ].join(" ")}
+              >
+                {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
+              </button>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4 p-5">
+            {searchTerm.trim() && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ
+              </div>
+            )}
+
             {active === OrderStatus.PRESCRIPTION ? (
               filtered.length === 0 ? (
-                <EmptyState />
+                searchTerm.trim() ? (
+                  <SearchEmptyState keyword={searchTerm} />
+                ) : (
+                  <EmptyState />
+                )
               ) : (
                 <div className="space-y-6">
                   {filtered.map((order) => (
@@ -276,7 +365,11 @@ export default function PharmacyPage() {
                 </div>
               )
             ) : filtered.length === 0 ? (
-              <EmptyState />
+              searchTerm.trim() ? (
+                <SearchEmptyState keyword={searchTerm} />
+              ) : (
+                <EmptyState />
+              )
             ) : (
               filtered.map((order) => (
                 <OrderCard
@@ -307,9 +400,7 @@ export default function PharmacyPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-extrabold text-slate-900">{selected.id}</p>
-                  <span className="rounded-full border bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
-                    {statusLabel[selected.status]}
-                  </span>
+                  <StatusBadge status={selected.status} />
                 </div>
 
                 <p className="mt-1 text-sm text-slate-600">
@@ -440,6 +531,19 @@ function StatCard({
   );
 }
 
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const badge = statusBadgeMap[status];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${badge.className}`}
+    >
+      {badge.icon}
+      {statusLabel[status]}
+    </span>
+  );
+}
+
 function OrderCard({
   order,
   onDetail,
@@ -453,15 +557,6 @@ function OrderCard({
   onApprove: () => void;
   onCancel: () => void;
 }) {
-  const badge =
-    order.status === OrderStatus.PENDING_REVIEW
-      ? "bg-amber-100 text-amber-700 border-amber-200"
-      : order.status === OrderStatus.PRESCRIPTION
-      ? "bg-sky-100 text-sky-700 border-sky-200"
-      : order.status === OrderStatus.PROCESSING
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : "bg-slate-100 text-slate-700 border-slate-200";
-
   const isFinished = order.status === OrderStatus.DONE || order.status === OrderStatus.CANCELLED;
 
   return (
@@ -471,9 +566,7 @@ function OrderCard({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-extrabold text-slate-900">{order.id}</p>
-              <span className={`rounded-full border px-2 py-0.5 text-xs ${badge}`}>
-                {statusLabel[order.status]}
-              </span>
+              <StatusBadge status={order.status} />
             </div>
             <p className="text-sm text-slate-600">
               ลูกค้า: <span className="font-semibold">Customer</span> •{" "}
@@ -611,6 +704,17 @@ function EmptyState() {
       <CardContent className="p-10 text-center">
         <p className="text-lg font-bold text-slate-800">ยังไม่มีรายการในสถานะนี้</p>
         <p className="mt-1 text-slate-600">ลองเลือกแท็บอื่น หรือกดรีเฟรช</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SearchEmptyState({ keyword }: { keyword: string }) {
+  return (
+    <Card className="rounded-3xl border bg-slate-50">
+      <CardContent className="p-10 text-center">
+        <p className="text-lg font-bold text-slate-800">ไม่พบรายการที่ค้นหา</p>
+        <p className="mt-1 text-slate-600">ไม่พบข้อมูลสำหรับ “{keyword}” ในสถานะนี้</p>
       </CardContent>
     </Card>
   );
@@ -804,9 +908,13 @@ function PrescriptionReviewCard({
           <p className="max-w-xs truncate font-mono text-xs text-slate-500">{order.id}</p>
         </div>
 
-        <p className="mt-1 text-sm text-slate-600">
-          ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-slate-600">
+            ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
+          </p>
+          <StatusBadge status={order.status} />
+        </div>
+
         <p className="text-xs text-slate-400">
           {new Date(order.createdAt).toLocaleString("th-TH", {
             dateStyle: "medium",

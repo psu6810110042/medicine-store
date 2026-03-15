@@ -9,6 +9,15 @@ import { Product, Category } from '../../../types/product';
 import { Card, CardContent } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Checkbox } from '../../../../components/ui/checkbox';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../../components/ui/select';
 import { ChevronLeft, Save, Plus } from 'lucide-react';
 import { ImageUpload } from '../../components/ImageUpload';
 import { AddCategoryModal } from '../../components/AddCategoryModal';
@@ -59,7 +68,7 @@ export default function AddProductPage() {
         setShowAddCategory(false);
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
@@ -121,7 +130,7 @@ export default function AddProductPage() {
                                 <h3 className="text-lg font-semibold">ข้อมูลพื้นฐาน</h3>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">ชื่อสินค้า *</label>
+                                    <Label className="mb-2">ชื่อสินค้า *</Label>
                                     <Input
                                         name="name"
                                         value={formData.name}
@@ -132,44 +141,49 @@ export default function AddProductPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">รายละเอียด *</label>
+                                    <Label className="mb-2">รายละเอียด *</Label>
                                     <textarea
                                         name="description"
                                         value={formData.description}
                                         onChange={handleChange}
                                         rows={3}
                                         placeholder="บรรยายสินค้า ประเภท วิธีใช้ คุณสมบัติ ฯลฯ"
-                                        className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                        className="w-full rounded-md border border-input bg-background px-4 py-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                         required
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-foreground mb-2">หมวดหมู่ *</label>
-                                        <select
-                                            value={formData.categoryId}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer"
-                                            required
+                                        <Label className="mb-2">หมวดหมู่ *</Label>
+                                        <Select
+                                            value={formData.categoryId || 'placeholder'}
+                                            onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value === 'placeholder' ? '' : value }))}
                                         >
-                                            <option value="">เลือกหมวดหมู่</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
-                                        <button
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="เลือกหมวดหมู่" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="placeholder" disabled>เลือกหมวดหมู่</SelectItem>
+                                                {categories.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
                                             type="button"
                                             onClick={() => setShowAddCategory(true)}
-                                            className="mt-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="mt-2 h-8 px-2 text-primary"
                                         >
                                             <Plus className="h-3 w-3" />
                                             เพิ่มหมวดหมู่ใหม่
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-foreground mb-2">ราคา (บาท) *</label>
+                                        <Label className="mb-2">ราคา (บาท) *</Label>
                                         <Input
                                             type="number"
                                             name="price"
@@ -190,7 +204,7 @@ export default function AddProductPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-foreground mb-2">จำนวนสต็อก *</label>
+                                        <Label className="mb-2">จำนวนสต็อก *</Label>
                                         <Input
                                             type="number"
                                             name="stockQuantity"
@@ -203,20 +217,24 @@ export default function AddProductPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-foreground mb-2">สถานะสต็อก</label>
-                                        <select
+                                        <Label className="mb-2">สถานะสต็อก</Label>
+                                        <Select
                                             value={String(formData.inStock)}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, inStock: e.target.value === 'true' }))}
-                                            className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer"
+                                            onValueChange={(value) => setFormData(prev => ({ ...prev, inStock: value === 'true' }))}
                                         >
-                                            <option value="true">มีสต็อก</option>
-                                            <option value="false">หมดสต็อก</option>
-                                        </select>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="เลือกสถานะ" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="true">มีสต็อก</SelectItem>
+                                                <SelectItem value="false">หมดสต็อก</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">หมายเลขแบตช์</label>
+                                    <Label className="mb-2">หมายเลขแบตช์</Label>
                                     <Input
                                         name="batchNumber"
                                         value={formData.batchNumber}
@@ -226,7 +244,7 @@ export default function AddProductPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">วันหมดอายุ</label>
+                                    <Label className="mb-2">วันหมดอายุ</Label>
                                     <Input
                                         type="date"
                                         name="expiryDate"
@@ -236,7 +254,7 @@ export default function AddProductPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">ผู้ผลิต</label>
+                                    <Label className="mb-2">ผู้ผลิต</Label>
                                     <Input
                                         name="manufacturer"
                                         value={formData.manufacturer}
@@ -251,31 +269,21 @@ export default function AddProductPage() {
                                 <h3 className="text-lg font-semibold">ข้อบังคับการขาย</h3>
 
                                 <div className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        name="isControlled"
+                                    <Checkbox
                                         id="isControlled"
                                         checked={formData.isControlled}
-                                        onChange={handleChange}
-                                        className="h-5 w-5 rounded border-gray-300"
+                                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isControlled: Boolean(checked) }))}
                                     />
-                                    <label htmlFor="isControlled" className="text-sm font-medium">
-                                        นี่คือยาควบคุม
-                                    </label>
+                                    <Label htmlFor="isControlled">นี่คือยาควบคุม</Label>
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        name="requiresPrescription"
+                                    <Checkbox
                                         id="requiresPrescription"
                                         checked={formData.requiresPrescription}
-                                        onChange={handleChange}
-                                        className="h-5 w-5 rounded border-gray-300"
+                                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresPrescription: Boolean(checked) }))}
                                     />
-                                    <label htmlFor="requiresPrescription" className="text-sm font-medium">
-                                        ต้องมีใบสั่งแพทย์
-                                    </label>
+                                    <Label htmlFor="requiresPrescription">ต้องมีใบสั่งแพทย์</Label>
                                 </div>
                             </div>
 
@@ -294,7 +302,7 @@ export default function AddProductPage() {
                                 <h3 className="text-lg font-semibold">ข้อมูลเพิ่มเติม</h3>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">สารประกอบหลัก</label>
+                                    <Label className="mb-2">สารประกอบหลัก</Label>
                                     <Input
                                         name="activeIngredient"
                                         value={formData.activeIngredient}
@@ -304,19 +312,19 @@ export default function AddProductPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">คำเตือน/ข้อระวัง</label>
+                                    <Label className="mb-2">คำเตือน/ข้อระวัง</Label>
                                     <textarea
                                         name="warnings"
                                         value={formData.warnings}
                                         onChange={handleChange}
                                         rows={3}
                                         placeholder="เช่น การห้ามใช้ข้างเคียง อาการไม่พึงประสงค์ ฯลฯ"
-                                        className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                        className="w-full rounded-md border border-input bg-background px-4 py-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">สรรพคุณ</label>
+                                    <Label className="mb-2">สรรพคุณ</Label>
                                     <Input
                                         name="properties"
                                         value={formData.properties}
@@ -333,14 +341,14 @@ export default function AddProductPage() {
                                         ยกเลิก
                                     </Button>
                                 </Link>
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 rounded-lg text-white hover:bg-emerald-700 disabled:opacity-50 font-bold transition-colors"
+                                    className="flex-1 gap-2"
                                 >
                                     <Save className="h-4 w-4" />
                                     {saving ? 'กำลังบันทึก...' : 'เพิ่มสินค้า'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </CardContent>
