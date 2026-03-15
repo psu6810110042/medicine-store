@@ -18,12 +18,17 @@ import {
   Truck,
   BadgePercent,
   Star,
-  Eye,
   ArrowRight,
+  AlertTriangle,
+  Info,
+  FlaskConical,
+  CalendarClock,
+  Building2,
+  Boxes,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -38,7 +43,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 import { productService } from '@/app/services/productService';
@@ -77,81 +82,168 @@ function SearchForm() {
   );
 }
 
-function ProductQuickView({ product }: { product: Product }) {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Eye className="h-4 w-4" />
-          ดูรายละเอียด
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{product.name}</DialogTitle>
-          <DialogDescription>{product.category?.name || 'สินค้าเภสัชภัณฑ์'}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-          <div className="rounded-lg border bg-muted/30 p-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={product.image || 'https://placehold.co/300x200?text=No+Image'}
-              alt={product.name}
-              className="h-36 w-full object-contain"
-            />
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{product.description || 'ไม่มีคำอธิบายสินค้า'}</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">฿{product.price}</Badge>
-              {product.isControlled && <Badge variant="destructive">ยาควบคุม</Badge>}
-              {product.requiresPrescription && <Badge variant="outline">ใบสั่งแพทย์</Badge>}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+function ProductCard({ product, onNavigate }: { product: Product; onNavigate: () => void }) {
+  const [open, setOpen] = useState(false);
 
-function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
   return (
-    <Card className="group overflow-hidden border-white/20 bg-white/70 backdrop-blur-md transition-all hover:-translate-y-1 hover:shadow-xl">
-      <div className="relative h-48 bg-white/50 p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={product.image || 'https://placehold.co/300x200?text=No+Image'}
-          alt={product.name}
-          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
-        />
-        {product.isControlled && (
-          <Badge className="absolute right-2 top-2 shadow-sm" variant="destructive">
-            ยาควบคุม
-          </Badge>
-        )}
-      </div>
-      <CardHeader className="pb-2">
-        <CardTitle className="line-clamp-2 text-base">{product.name}</CardTitle>
-        <CardDescription className="line-clamp-2 text-sm">{product.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-primary">฿{product.price}</span>
-          {product.requiresPrescription && (
-            <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-[10px] text-yellow-700">
-              ใบสั่งแพทย์
+    <>
+      {/* Clickable Card */}
+      <div
+        className="group cursor-pointer overflow-hidden rounded-xl border border-white/20 bg-white/70 backdrop-blur-md transition-all hover:-translate-y-1 hover:shadow-xl"
+        onClick={() => setOpen(true)}
+      >
+        <div className="relative h-48 bg-white/50 p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={product.image || 'https://placehold.co/300x200?text=No+Image'}
+            alt={product.name}
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
+          />
+          {product.isControlled && (
+            <Badge className="absolute right-2 top-2 shadow-sm" variant="destructive">
+              ยาควบคุม
             </Badge>
           )}
         </div>
-      </CardContent>
-      <CardFooter className="grid grid-cols-2 gap-2">
-        <ProductQuickView product={product} />
-        <Button onClick={onOpen} size="sm" className="w-full">
-          รายละเอียด
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </CardFooter>
-    </Card>
+        <div className="p-4">
+          <h3 className="mb-1 line-clamp-2 font-semibold text-foreground transition-colors group-hover:text-primary">
+            {product.name}
+          </h3>
+          <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-primary">฿{product.price.toLocaleString()}</span>
+            {product.requiresPrescription && (
+              <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-[10px] text-yellow-700">
+                ใบสั่งแพทย์
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Radix Dialog Popup */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
+          {/* Top image banner */}
+          <div className="flex h-56 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-8">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={product.image || 'https://placehold.co/400x240?text=No+Image'}
+              alt={product.name}
+              className="h-44 w-full object-contain"
+            />
+          </div>
+
+          <div className="space-y-5 p-6">
+            <DialogHeader>
+              <div className="flex flex-wrap items-start gap-2">
+                {product.isControlled && <Badge variant="destructive">ยาควบคุม</Badge>}
+                {product.requiresPrescription && (
+                  <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700">
+                    ต้องใช้ใบสั่งแพทย์
+                  </Badge>
+                )}
+                {!product.inStock && <Badge variant="secondary">สินค้าหมด</Badge>}
+              </div>
+              <DialogTitle className="mt-2 text-xl leading-snug">{product.name}</DialogTitle>
+              <DialogDescription className="text-base text-muted-foreground">
+                {product.category?.name || 'สินค้าเภสัชภัณฑ์'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Price */}
+            <div className="text-2xl font-bold text-primary">฿{product.price.toLocaleString()}</div>
+
+            {/* Details grid */}
+            <div className="grid gap-4 text-sm">
+              {product.description && (
+                <div className="flex gap-3">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">คำอธิบาย</p>
+                    <p className="text-muted-foreground">{product.description}</p>
+                  </div>
+                </div>
+              )}
+              {product.properties && (
+                <div className="flex gap-3">
+                  <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                  <div>
+                    <p className="font-medium text-foreground">สรรพคุณ / คุณสมบัติ</p>
+                    <p className="text-muted-foreground">{product.properties}</p>
+                  </div>
+                </div>
+              )}
+              {product.warnings && (
+                <div className="flex gap-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <div>
+                    <p className="font-medium text-foreground">คำเตือน</p>
+                    <p className="text-muted-foreground">{product.warnings}</p>
+                  </div>
+                </div>
+              )}
+              {product.activeIngredient && (
+                <div className="flex gap-3">
+                  <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-purple-500" />
+                  <div>
+                    <p className="font-medium text-foreground">สารออกฤทธิ์</p>
+                    <p className="text-muted-foreground">{product.activeIngredient}</p>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                {product.manufacturer && (
+                  <div className="flex gap-3">
+                    <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-foreground">ผู้ผลิต</p>
+                      <p className="text-muted-foreground">{product.manufacturer}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <Boxes className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">คงเหลือ</p>
+                    <p className={product.stockQuantity < 10 ? 'font-semibold text-red-500' : 'text-muted-foreground'}>
+                      {product.stockQuantity}
+                    </p>
+                  </div>
+                </div>
+                {product.expiryDate && (
+                  <div className="flex gap-3">
+                    <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-foreground">วันหมดอายุ</p>
+                      <p className="text-muted-foreground">
+                        {new Date(product.expiryDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                ปิด
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  setOpen(false);
+                  onNavigate();
+                }}
+              >
+                รายละเอียดเพิ่มเติม
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -307,7 +399,7 @@ function StoreContent() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filterByCategory(promotedProducts).map(product => (
-                <ProductCard key={product.id} product={product} onOpen={() => router.push(`/products/${product.id}`)} />
+                <ProductCard key={product.id} product={product} onNavigate={() => router.push(`/products/${product.id}`)} />
               ))}
             </div>
           )}
@@ -329,7 +421,7 @@ function StoreContent() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filterByCategory(recommendedProducts).map(product => (
-                <ProductCard key={product.id} product={product} onOpen={() => router.push(`/products/${product.id}`)} />
+                <ProductCard key={product.id} product={product} onNavigate={() => router.push(`/products/${product.id}`)} />
               ))}
             </div>
           )}
