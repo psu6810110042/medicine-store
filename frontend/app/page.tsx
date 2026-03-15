@@ -2,11 +2,44 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Search, Package, Pill, Syringe, HeartPulse, Sparkles, Activity, Stethoscope, Baby, Leaf, ShieldCheck, UserCheck, Truck, BadgePercent, Star } from 'lucide-react';
+import {
+  Search,
+  Package,
+  Pill,
+  Syringe,
+  HeartPulse,
+  Sparkles,
+  Activity,
+  Stethoscope,
+  Baby,
+  Leaf,
+  ShieldCheck,
+  UserCheck,
+  Truck,
+  BadgePercent,
+  Star,
+  Eye,
+  ArrowRight,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 import { productService } from '@/app/services/productService';
 import { categoryService } from '@/app/services/categoryService';
@@ -44,11 +77,90 @@ function SearchForm() {
   );
 }
 
+function ProductQuickView({ product }: { product: Product }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full">
+          <Eye className="h-4 w-4" />
+          ดูรายละเอียด
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{product.name}</DialogTitle>
+          <DialogDescription>{product.category?.name || 'สินค้าเภสัชภัณฑ์'}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+          <div className="rounded-lg border bg-muted/30 p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={product.image || 'https://placehold.co/300x200?text=No+Image'}
+              alt={product.name}
+              className="h-36 w-full object-contain"
+            />
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{product.description || 'ไม่มีคำอธิบายสินค้า'}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">฿{product.price}</Badge>
+              {product.isControlled && <Badge variant="destructive">ยาควบคุม</Badge>}
+              {product.requiresPrescription && <Badge variant="outline">ใบสั่งแพทย์</Badge>}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
+  return (
+    <Card className="group overflow-hidden border-white/20 bg-white/70 backdrop-blur-md transition-all hover:-translate-y-1 hover:shadow-xl">
+      <div className="relative h-48 bg-white/50 p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={product.image || 'https://placehold.co/300x200?text=No+Image'}
+          alt={product.name}
+          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
+        />
+        {product.isControlled && (
+          <Badge className="absolute right-2 top-2 shadow-sm" variant="destructive">
+            ยาควบคุม
+          </Badge>
+        )}
+      </div>
+      <CardHeader className="pb-2">
+        <CardTitle className="line-clamp-2 text-base">{product.name}</CardTitle>
+        <CardDescription className="line-clamp-2 text-sm">{product.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold text-primary">฿{product.price}</span>
+          {product.requiresPrescription && (
+            <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-[10px] text-yellow-700">
+              ใบสั่งแพทย์
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="grid grid-cols-2 gap-2">
+        <ProductQuickView product={product} />
+        <Button onClick={onOpen} size="sm" className="w-full">
+          รายละเอียด
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
 function StoreContent() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +200,20 @@ function StoreContent() {
 
   const promotedProducts = products.slice(0, 4);
   const recommendedProducts = products.slice(4, 8);
+  const categoryOptions = [{ id: 'all', name: 'ทุกหมวดหมู่' }, ...categories];
+
+  const filterByCategory = (items: Product[]) => {
+    if (selectedCategory === 'all') {
+      return items;
+    }
+
+    return items.filter(product => {
+      if (product.category?.id) {
+        return product.category.id === selectedCategory;
+      }
+      return product.categoryId === selectedCategory;
+    });
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background relative overflow-hidden">
@@ -115,15 +241,29 @@ function StoreContent() {
 
         {/* Categories */}
         <section className="mb-16">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">หมวดหมู่สินค้า</h2>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/products`)}
-              className="bg-white/50 backdrop-blur-sm hover:bg-white/80"
-            >
-              ดูสินค้าทั้งหมด
-            </Button>
+            <div className="flex gap-2">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full min-w-[220px] bg-white/70 backdrop-blur-sm md:w-[240px]">
+                  <SelectValue placeholder="เลือกหมวดหมู่" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/products`)}
+                className="bg-white/50 backdrop-blur-sm hover:bg-white/80"
+              >
+                ดูสินค้าทั้งหมด
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
             {categories.map((category: Category) => (
@@ -166,39 +306,8 @@ function StoreContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {promotedProducts.map(product => (
-                <Card
-                  key={product.id}
-                  className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                  onClick={() => router.push(`/products/${product.id}`)}
-                >
-                  <div className="relative bg-white/50 h-48 p-4">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={product.image || 'https://placehold.co/300x200?text=No+Image'}
-                      alt={product.name}
-                      className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transform group-hover:scale-110 transition-transform duration-500"
-                    />
-                    {product.isControlled && (
-                      <Badge className="absolute top-2 right-2 shadow-sm" variant="destructive">
-                        ยาควบคุม
-                      </Badge>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2 text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="text-lg font-bold text-primary">฿{product.price}</span>
-                      {product.requiresPrescription && (
-                        <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200">
-                          ใบสั่งแพทย์
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+              {filterByCategory(promotedProducts).map(product => (
+                <ProductCard key={product.id} product={product} onOpen={() => router.push(`/products/${product.id}`)} />
               ))}
             </div>
           )}
@@ -219,39 +328,8 @@ function StoreContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {recommendedProducts.map(product => (
-                <Card
-                  key={product.id}
-                  className="group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden bg-white/70 backdrop-blur-md border-white/20"
-                  onClick={() => router.push(`/products/${product.id}`)}
-                >
-                  <div className="relative bg-white/50 h-48 p-4">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={product.image || 'https://placehold.co/300x200?text=No+Image'}
-                      alt={product.name}
-                      className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transform group-hover:scale-110 transition-transform duration-500"
-                    />
-                    {product.isControlled && (
-                      <Badge className="absolute top-2 right-2 shadow-sm" variant="destructive">
-                        ยาควบคุม
-                      </Badge>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2 text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="text-lg font-bold text-primary">฿{product.price}</span>
-                      {product.requiresPrescription && (
-                        <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200">
-                          ใบสั่งแพทย์
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+              {filterByCategory(recommendedProducts).map(product => (
+                <ProductCard key={product.id} product={product} onOpen={() => router.push(`/products/${product.id}`)} />
               ))}
             </div>
           )}
