@@ -263,50 +263,58 @@ export default function PharmacyPage() {
           </CardHeader>
         </Card>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard
-            title="รอตรวจสอบ"
-            value={summary.pending}
-            accent="from-amber-500 to-orange-500"
-            icon={<ClipboardList className="h-6 w-6" />}
-            subtitle="คำสั่งซื้อที่ต้องตรวจ"
-          />
-          <StatCard
-            title="รอตรวจใบสั่งยา"
-            value={summary.prescription}
-            accent="from-indigo-500 to-purple-500"
-            icon={<FileClock className="h-6 w-6" />}
-            subtitle="ต้องตรวจใบสั่งแพทย์"
-          />
-          <StatCard
-            title="กำลังดำเนินการ"
-            value={summary.processing}
-            accent="from-teal-500 to-cyan-500"
-            icon={<Truck className="h-6 w-6" />}
-            subtitle="กำลังจัดยา"
-          />
-          <StatCard
-            title="คำสั่งซื้อทั้งหมด"
-            value={summary.total}
-            accent="from-emerald-500 to-teal-500"
-            icon={<Package className="h-6 w-6" />}
-            subtitle="รวมทุกสถานะ"
-          />
-          <StatCard
-            title="ยอดขาย"
-            value={`฿${summary.sales.toLocaleString()}`}
-            accent="from-sky-500 to-indigo-500"
-            icon={<Coins className="h-6 w-6" />}
-            subtitle="สรุปจากออเดอร์"
-          />
-          <StatCard
-            title="สินค้าในสต็อก"
-            value={summary.stockCount}
-            accent="from-fuchsia-500 to-violet-500"
-            icon={<Pill className="h-6 w-6" />}
-            subtitle="พร้อมจำหน่าย"
-          />
-        </section>
+        {refreshing && orders.length === 0 ? (
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <StatCardSkeleton key={index} />
+            ))}
+          </section>
+        ) : (
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <StatCard
+              title="รอตรวจสอบ"
+              value={summary.pending}
+              accent="from-amber-500 to-orange-500"
+              icon={<ClipboardList className="h-6 w-6" />}
+              subtitle="คำสั่งซื้อที่ต้องตรวจ"
+            />
+            <StatCard
+              title="รอตรวจใบสั่งยา"
+              value={summary.prescription}
+              accent="from-indigo-500 to-purple-500"
+              icon={<FileClock className="h-6 w-6" />}
+              subtitle="ต้องตรวจใบสั่งแพทย์"
+            />
+            <StatCard
+              title="กำลังดำเนินการ"
+              value={summary.processing}
+              accent="from-teal-500 to-cyan-500"
+              icon={<Truck className="h-6 w-6" />}
+              subtitle="กำลังจัดยา"
+            />
+            <StatCard
+              title="คำสั่งซื้อทั้งหมด"
+              value={summary.total}
+              accent="from-emerald-500 to-teal-500"
+              icon={<Package className="h-6 w-6" />}
+              subtitle="รวมทุกสถานะ"
+            />
+            <StatCard
+              title="ยอดขาย"
+              value={`฿${summary.sales.toLocaleString()}`}
+              accent="from-sky-500 to-indigo-500"
+              icon={<Coins className="h-6 w-6" />}
+              subtitle="สรุปจากออเดอร์"
+            />
+            <StatCard
+              title="สินค้าในสต็อก"
+              value={summary.stockCount}
+              accent="from-fuchsia-500 to-violet-500"
+              icon={<Pill className="h-6 w-6" />}
+              subtitle="พร้อมจำหน่าย"
+            />
+          </section>
+        )}
 
         <Tabs value={active} onValueChange={(value) => setActive(value as OrderStatus)}>
           <TabsList className="flex h-auto flex-wrap gap-2 bg-transparent p-0">
@@ -438,88 +446,121 @@ export default function PharmacyPage() {
           </CardHeader>
 
           <CardContent className="space-y-4 p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              {(Object.keys(quickFilterLabel) as QuickFilter[]).map((filterKey) => {
-                const activeChip = quickFilter === filterKey;
-                return (
-                  <button
-                    key={filterKey}
-                    type="button"
-                    onClick={() => setQuickFilter(filterKey)}
-                    className={[
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-                      activeChip
-                        ? "border-violet-600 bg-violet-600 text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    {quickFilterLabel[filterKey]}
-                  </button>
-                );
-              })}
-            </div>
+            {refreshing && orders.length === 0 ? (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(Object.keys(quickFilterLabel) as QuickFilter[]).map((filterKey) => {
+                    const activeChip = quickFilter === filterKey;
+                    return (
+                      <button
+                        key={filterKey}
+                        type="button"
+                        onClick={() => setQuickFilter(filterKey)}
+                        className={[
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                          activeChip
+                            ? "border-violet-600 bg-violet-600 text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        {quickFilterLabel[filterKey]}
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {searchTerm.trim() && (
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-                ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ จากทั้งหมด{" "}
-                {currentTabOrders.length} รายการในสถานะนี้
-              </div>
-            )}
-
-            {!searchTerm.trim() && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
-                กำลังเรียงข้อมูลแบบ <span className="font-semibold">{sortLabel[sortBy]}</span> และใช้ฟิลเตอร์{" "}
-                <span className="font-semibold">{quickFilterLabel[quickFilter]}</span>
-              </div>
-            )}
-
-            {active === OrderStatus.PRESCRIPTION ? (
-              filtered.length === 0 ? (
-                searchTerm.trim() ? (
-                  <SearchEmptyState keyword={searchTerm} />
-                ) : (
-                  <EmptyState />
-                )
-              ) : (
-                <div className="space-y-6">
-                  {filtered.map((order) => (
-                    <PrescriptionReviewCard
-                      key={order.id}
-                      order={order}
-                      onOrderUpdated={(updated) => {
-                        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-                      }}
-                      onStatusChange={async (id, status) => {
-                        await updateStatus(id, status);
-                      }}
-                    />
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <OrderCardSkeleton key={index} />
                   ))}
                 </div>
-              )
-            ) : filtered.length === 0 ? (
-              searchTerm.trim() ? (
-                <SearchEmptyState keyword={searchTerm} />
-              ) : (
-                <EmptyState />
-              )
+              </>
             ) : (
-              filtered.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onDetail={() => openDetail(order)}
-                  onReview={() => openDetail(order)}
-                  onApprove={() => {
-                    let nextStatus = OrderStatus.PROCESSING;
-                    if (order.status === OrderStatus.PROCESSING) nextStatus = OrderStatus.DONE;
-                    else if (order.status === OrderStatus.STOCK) nextStatus = OrderStatus.DONE;
-                    updateStatus(order.id, nextStatus);
-                  }}
-                  onCancel={() => {
-                    updateStatus(order.id, OrderStatus.CANCELLED);
-                  }}
-                />
-              ))
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(Object.keys(quickFilterLabel) as QuickFilter[]).map((filterKey) => {
+                    const activeChip = quickFilter === filterKey;
+                    return (
+                      <button
+                        key={filterKey}
+                        type="button"
+                        onClick={() => setQuickFilter(filterKey)}
+                        className={[
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                          activeChip
+                            ? "border-violet-600 bg-violet-600 text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        {quickFilterLabel[filterKey]}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {searchTerm.trim() && (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                    ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ จากทั้งหมด{" "}
+                    {currentTabOrders.length} รายการในสถานะนี้
+                  </div>
+                )}
+
+                {!searchTerm.trim() && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+                    กำลังเรียงข้อมูลแบบ <span className="font-semibold">{sortLabel[sortBy]}</span>{" "}
+                    และใช้ฟิลเตอร์ <span className="font-semibold">{quickFilterLabel[quickFilter]}</span>
+                  </div>
+                )}
+
+                {active === OrderStatus.PRESCRIPTION ? (
+                  filtered.length === 0 ? (
+                    searchTerm.trim() ? (
+                      <SearchEmptyState keyword={searchTerm} />
+                    ) : (
+                      <EmptyState />
+                    )
+                  ) : (
+                    <div className="space-y-6">
+                      {filtered.map((order) => (
+                        <PrescriptionReviewCard
+                          key={order.id}
+                          order={order}
+                          onOrderUpdated={(updated) => {
+                            setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+                          }}
+                          onStatusChange={async (id, status) => {
+                            await updateStatus(id, status);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )
+                ) : filtered.length === 0 ? (
+                  searchTerm.trim() ? (
+                    <SearchEmptyState keyword={searchTerm} />
+                  ) : (
+                    <EmptyState />
+                  )
+                ) : (
+                  filtered.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onDetail={() => openDetail(order)}
+                      onReview={() => openDetail(order)}
+                      onApprove={() => {
+                        let nextStatus = OrderStatus.PROCESSING;
+                        if (order.status === OrderStatus.PROCESSING) nextStatus = OrderStatus.DONE;
+                        else if (order.status === OrderStatus.STOCK) nextStatus = OrderStatus.DONE;
+                        updateStatus(order.id, nextStatus);
+                      }}
+                      onCancel={() => {
+                        updateStatus(order.id, OrderStatus.CANCELLED);
+                      }}
+                    />
+                  ))
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -658,6 +699,67 @@ function StatCard({
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
         <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatCardSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
+      <div className="h-1 w-full bg-slate-200" />
+      <CardContent className="flex items-start justify-between gap-3 p-5">
+        <div className="flex-1 space-y-3">
+          <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+          <div className="h-8 w-20 animate-pulse rounded bg-slate-200" />
+          <div className="h-3 w-28 animate-pulse rounded bg-slate-200" />
+        </div>
+        <div className="h-12 w-12 animate-pulse rounded-2xl bg-slate-200" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrderCardSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
+      <CardContent className="space-y-5 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex-1 space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="h-4 w-56 animate-pulse rounded bg-slate-200" />
+            <div className="h-16 w-full max-w-md animate-pulse rounded-lg bg-slate-200" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-3 w-10 animate-pulse rounded bg-slate-200" />
+            <div className="h-7 w-20 animate-pulse rounded bg-slate-200" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border bg-slate-50 p-4 lg:col-span-2">
+            <div className="mb-4 h-4 w-24 animate-pulse rounded bg-slate-200" />
+            <div className="space-y-3">
+              <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+              <div className="h-4 w-11/12 animate-pulse rounded bg-slate-200" />
+              <div className="h-4 w-10/12 animate-pulse rounded bg-slate-200" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-slate-50 p-4">
+            <div className="mb-4 h-4 w-28 animate-pulse rounded bg-slate-200" />
+            <div className="h-20 w-full animate-pulse rounded bg-slate-200" />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="h-10 w-28 animate-pulse rounded-xl bg-slate-200" />
+          <div className="flex gap-2">
+            <div className="h-10 w-24 animate-pulse rounded-xl bg-slate-200" />
+            <div className="h-10 w-20 animate-pulse rounded-xl bg-slate-200" />
+            <div className="h-10 w-20 animate-pulse rounded-xl bg-slate-200" />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
