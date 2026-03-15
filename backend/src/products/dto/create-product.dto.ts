@@ -68,4 +68,8 @@ export class CreateProductDto {
     @IsString()
     @IsOptional()
     activeIngredient?: string;
+
+    @IsString()
+    @IsOptional()
+    warrantyInfo?: string;
 }

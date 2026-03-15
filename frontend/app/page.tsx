@@ -183,6 +183,15 @@ function ProductCard({ product, onNavigate }: { product: Product; onNavigate: ()
                   </div>
                 </div>
               )}
+              {product.warrantyInfo && product.categoryId === 'medical-device' && (
+                <div className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                  <div>
+                    <p className="font-medium text-foreground">การรับประกัน</p>
+                    <p className="text-muted-foreground">{product.warrantyInfo}</p>
+                  </div>
+                </div>
+              )}
               {product.activeIngredient && (
                 <div className="flex gap-3">
                   <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-purple-500" />
