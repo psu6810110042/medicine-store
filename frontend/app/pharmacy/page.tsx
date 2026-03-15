@@ -166,6 +166,12 @@ export default function PharmacyPage() {
     await fetchAllOrders();
   };
 
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSortBy("newest");
+    setQuickFilter("all");
+  };
+
   const currentTabOrders = useMemo(() => {
     return orders.filter((o) => o.status === active);
   }, [orders, active]);
@@ -419,6 +425,14 @@ export default function PharmacyPage() {
                 ].join(" ")}
               >
                 {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                รีเซ็ตตัวกรอง
               </button>
             </div>
           </CardHeader>
