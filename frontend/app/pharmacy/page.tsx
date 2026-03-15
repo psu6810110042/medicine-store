@@ -112,6 +112,11 @@ export default function PharmacyPage() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
 
+  const [statModal, setStatModal] = useState<{
+    title: string;
+    value: string | number;
+  } | null>(null);
+
   const fetchAllOrders = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -287,6 +292,12 @@ export default function PharmacyPage() {
               accent="from-amber-500 to-orange-500"
               icon={<ClipboardList className="h-6 w-6" />}
               subtitle="คำสั่งซื้อที่ต้องตรวจ"
+              onView={() =>
+                setStatModal({
+                  title: "รอตรวจสอบ",
+                  value: summary.pending,
+                })
+              }
             />
             <StatCard
               title="รอตรวจใบสั่งยา"
@@ -294,6 +305,12 @@ export default function PharmacyPage() {
               accent="from-indigo-500 to-purple-500"
               icon={<FileClock className="h-6 w-6" />}
               subtitle="ต้องตรวจใบสั่งแพทย์"
+              onView={() =>
+                setStatModal({
+                  title: "รอตรวจใบสั่งยา",
+                  value: summary.prescription,
+                })
+              }
             />
             <StatCard
               title="กำลังดำเนินการ"
@@ -301,6 +318,12 @@ export default function PharmacyPage() {
               accent="from-teal-500 to-cyan-500"
               icon={<Truck className="h-6 w-6" />}
               subtitle="กำลังจัดยา"
+              onView={() =>
+                setStatModal({
+                  title: "กำลังดำเนินการ",
+                  value: summary.processing,
+                })
+              }
             />
             <StatCard
               title="คำสั่งซื้อทั้งหมด"
@@ -308,6 +331,12 @@ export default function PharmacyPage() {
               accent="from-emerald-500 to-teal-500"
               icon={<Package className="h-6 w-6" />}
               subtitle="รวมทุกสถานะ"
+              onView={() =>
+                setStatModal({
+                  title: "คำสั่งซื้อทั้งหมด",
+                  value: summary.total,
+                })
+              }
             />
             <StatCard
               title="ยอดขาย"
@@ -315,6 +344,12 @@ export default function PharmacyPage() {
               accent="from-sky-500 to-indigo-500"
               icon={<Coins className="h-6 w-6" />}
               subtitle="สรุปจากออเดอร์"
+              onView={() =>
+                setStatModal({
+                  title: "ยอดขายทั้งหมด",
+                  value: `฿${summary.sales.toLocaleString()}`,
+                })
+              }
             />
             <StatCard
               title="สินค้าในสต็อก"
@@ -322,6 +357,12 @@ export default function PharmacyPage() {
               accent="from-fuchsia-500 to-violet-500"
               icon={<Pill className="h-6 w-6" />}
               subtitle="พร้อมจำหน่าย"
+              onView={() =>
+                setStatModal({
+                  title: "สินค้าในสต็อก",
+                  value: summary.stockCount,
+                })
+              }
             />
           </section>
         )}
@@ -688,6 +729,13 @@ export default function PharmacyPage() {
           </div>
         ) : null}
       </Modal>
+
+      <StatValueModal
+        open={!!statModal}
+        title={statModal?.title ?? ""}
+        value={statModal?.value ?? ""}
+        onClose={() => setStatModal(null)}
+      />
     </main>
   );
 }
@@ -698,39 +746,48 @@ function StatCard({
   subtitle,
   accent,
   icon,
+  onView,
 }: {
   title: string;
   value: string | number;
   subtitle: string;
   accent: string;
   icon: React.ReactNode;
+  onView?: () => void;
 }) {
   const displayValue = String(value);
-  const isLongValue = displayValue.length >= 9;
-  const isVeryLongValue = displayValue.length >= 12;
+  const shortValue =
+    displayValue.length > 6 ? `${displayValue.slice(0, 3)}...` : displayValue;
 
   return (
     <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className={`h-1 w-full bg-gradient-to-r ${accent}`} />
-      <CardContent className="flex min-h-[152px] items-start justify-between gap-3 p-5">
+      <CardContent className="flex min-h-[168px] items-start justify-between gap-3 p-5">
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 min-h-[40px] text-sm leading-5 text-slate-500">{title}</p>
 
           <div className="mt-2 min-h-[44px] max-w-full overflow-hidden">
             <p
-              className={[
-                "truncate font-extrabold leading-none text-slate-900",
-                isVeryLongValue ? "text-xl" : isLongValue ? "text-2xl" : "text-3xl",
-              ].join(" ")}
+              className="truncate text-3xl font-extrabold leading-none text-slate-900"
               title={displayValue}
             >
-              {displayValue}
+              {shortValue}
             </p>
           </div>
 
           <p className="mt-2 line-clamp-2 min-h-[32px] text-xs leading-4 text-slate-500">
             {subtitle}
           </p>
+
+          {onView && (
+            <button
+              type="button"
+              onClick={onView}
+              className="mt-2 text-xs font-semibold text-emerald-600 transition hover:text-emerald-700 hover:underline"
+            >
+              ดูข้อมูลเต็ม
+            </button>
+          )}
         </div>
 
         <div className="shrink-0 rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
@@ -743,11 +800,12 @@ function StatCardSkeleton() {
   return (
     <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
       <div className="h-1 w-full bg-slate-200" />
-      <CardContent className="flex min-h-[152px] items-start justify-between gap-3 p-5">
+      <CardContent className="flex min-h-[168px] items-start justify-between gap-3 p-5">
         <div className="flex-1 space-y-3">
           <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
           <div className="h-8 w-20 animate-pulse rounded bg-slate-200" />
           <div className="h-3 w-28 animate-pulse rounded bg-slate-200" />
+          <div className="h-3 w-16 animate-pulse rounded bg-slate-200" />
         </div>
         <div className="h-12 w-12 animate-pulse rounded-2xl bg-slate-200" />
       </CardContent>
@@ -1020,6 +1078,52 @@ function Modal({
           </button>
         </div>
         <div className="max-h-[75vh] overflow-auto p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function StatValueModal({
+  open,
+  title,
+  value,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  value: string | number;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute inset-0"
+        aria-label="close stat modal"
+      />
+      <div className="relative w-full max-w-md rounded-3xl border bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-slate-500">รายละเอียดสถิติ</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            ปิด
+          </button>
+        </div>
+
+        <div className="mt-6 rounded-2xl border bg-slate-50 p-5">
+          <p className="text-xs uppercase tracking-wide text-slate-500">ค่าปัจจุบัน</p>
+          <p className="mt-2 break-all text-3xl font-extrabold text-slate-900">{value}</p>
+        </div>
       </div>
     </div>
   );
