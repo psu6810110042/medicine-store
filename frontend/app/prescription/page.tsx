@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Upload, FileCheck, Trash2 } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -170,76 +170,75 @@ export default function PrescriptionPage() {
           <CardContent>
             <div className="space-y-4">
               {/* Drag & Drop Zone */}
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${dragging
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-300 hover:border-primary"
-                  }`}
-                onClick={() => inputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl transition-colors ${dragging ? "border-primary bg-primary/5" : "border-gray-300 hover:border-primary"}`}
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
               >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className="w-8 h-8 text-gray-400" />
-                  <p className="font-semibold text-gray-700">
-                    คลิกเพื่ออัปโหลด หรือลากไฟล์มาวาง
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    JPG, PNG หรือ WEBP (สูงสุด 5MB ต่อไฟล์)
-                  </p>
-                </div>
-              </div>
-
-              {/* File List */}
-              {prescriptionFiles.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-                    <FileCheck className="w-4 h-4" />
-                    ไฟล์ที่เลือก ({prescriptionFiles.length})
-                  </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    {prescriptionFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between bg-white p-3 rounded border border-gray-200"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {/* Preview thumbnail */}
+                {prescriptionFiles.length === 0 ? (
+                  /* Empty state — clickable upload prompt */
+                  <div
+                    className="cursor-pointer p-10 flex flex-col items-center gap-2 text-center"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    <Upload className="w-10 h-10 text-gray-400" />
+                    <p className="font-semibold text-gray-700">
+                      คลิกเพื่ออัปโหลด หรือลากไฟล์มาวาง
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      JPG, PNG หรือ WEBP (สูงสุด 5MB ต่อไฟล์)
+                    </p>
+                  </div>
+                ) : (
+                  /* Files selected — show large previews inside the zone */
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {prescriptionFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="relative rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm"
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={URL.createObjectURL(file)}
                             alt={file.name}
-                            className="w-10 h-10 object-cover rounded border flex-shrink-0"
+                            className="w-full h-72 object-contain bg-gray-50"
                           />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
+                          {/* Remove button — top-right overlay */}
+                          <button
+                            onClick={() => handleRemoveFile(index)}
+                            className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-red-50 border border-gray-200 rounded-lg text-red-500 hover:text-red-700 shadow-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          {/* File info bar */}
+                          <div className="px-3 py-2 border-t border-gray-100">
+                            <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleRemoveFile(index)}
-                          className="ml-2 p-1 hover:bg-red-50 rounded text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    {/* Add more button */}
+                    <button
+                      onClick={() => inputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-dashed border-gray-300 hover:border-primary text-sm text-gray-500 hover:text-primary transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      เพิ่มรูปภาพอีก
+                    </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Success list */}
               {uploadedUrls.length > 0 && (
