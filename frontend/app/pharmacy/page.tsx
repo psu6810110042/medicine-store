@@ -316,8 +316,19 @@ export default function PharmacyPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
-                  className="w-full rounded-xl border bg-white py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border bg-white py-2 pl-10 pr-10 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
                 />
+                {searchTerm.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                    aria-label="clear search"
+                    title="ล้างคำค้นหา"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <button
