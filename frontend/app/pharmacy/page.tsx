@@ -82,13 +82,10 @@ const sortLabel: Record<SortOption, string> = {
   lowest: "ยอดต่ำสุด",
 };
 
-type QuickFilter = "all" | "hasPrescription" | "paid" | "unpaid" | "highValue";
+type QuickFilter = "all" | "highValue";
 
 const quickFilterLabel: Record<QuickFilter, string> = {
   all: "ทั้งหมด",
-  hasPrescription: "มีใบสั่งยา",
-  paid: "ชำระเงินแล้ว",
-  unpaid: "ยังไม่ยืนยันชำระเงิน",
   highValue: "ยอดเกิน 500",
 };
 
@@ -180,9 +177,6 @@ export default function PharmacyPage() {
       const statusMatched = o.status === active;
       if (!statusMatched) return false;
 
-      if (quickFilter === "hasPrescription" && !o.prescriptionImage) return false;
-      if (quickFilter === "paid" && o.paymentStatus !== "APPROVED") return false;
-      if (quickFilter === "unpaid" && o.paymentStatus === "APPROVED") return false;
       if (quickFilter === "highValue" && Number(o.totalAmount || 0) <= 500) return false;
 
       if (!keyword) return true;
