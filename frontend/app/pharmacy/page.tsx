@@ -20,6 +20,7 @@ import {
   FileClock,
   ListFilter,
   ArrowUpDown,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,16 @@ const sortLabel: Record<SortOption, string> = {
   lowest: "ยอดต่ำสุด",
 };
 
+type QuickFilter = "all" | "hasPrescription" | "paid" | "unpaid" | "highValue";
+
+const quickFilterLabel: Record<QuickFilter, string> = {
+  all: "ทั้งหมด",
+  hasPrescription: "มีใบสั่งยา",
+  paid: "ชำระเงินแล้ว",
+  unpaid: "ยังไม่ยืนยันชำระเงิน",
+  highValue: "ยอดเกิน 500",
+};
+
 export default function PharmacyPage() {
   const [active, setActive] = useState<OrderStatus>(OrderStatus.PENDING_REVIEW);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -92,6 +103,7 @@ export default function PharmacyPage() {
   const [stockCount, setStockCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -167,6 +179,12 @@ export default function PharmacyPage() {
     const matched = orders.filter((o) => {
       const statusMatched = o.status === active;
       if (!statusMatched) return false;
+
+      if (quickFilter === "hasPrescription" && !o.prescriptionImage) return false;
+      if (quickFilter === "paid" && o.paymentStatus !== "APPROVED") return false;
+      if (quickFilter === "unpaid" && o.paymentStatus === "APPROVED") return false;
+      if (quickFilter === "highValue" && Number(o.totalAmount || 0) <= 500) return false;
+
       if (!keyword) return true;
 
       const orderIdMatched = String(o.id).toLowerCase().includes(keyword);
@@ -195,7 +213,7 @@ export default function PharmacyPage() {
     });
 
     return sorted;
-  }, [orders, active, searchTerm, sortBy]);
+  }, [orders, active, searchTerm, sortBy, quickFilter]);
 
   const summary = useMemo(() => {
     const pending = orders.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
@@ -346,6 +364,11 @@ export default function PharmacyPage() {
                   <ArrowUpDown className="h-3.5 w-3.5" />
                   เรียง: {sortLabel[sortBy]}
                 </span>
+
+                <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  ฟิลเตอร์: {quickFilterLabel[quickFilter]}
+                </span>
               </div>
 
               <p className="mt-1 text-sm text-slate-600">
@@ -407,6 +430,27 @@ export default function PharmacyPage() {
           </CardHeader>
 
           <CardContent className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              {(Object.keys(quickFilterLabel) as QuickFilter[]).map((filterKey) => {
+                const activeChip = quickFilter === filterKey;
+                return (
+                  <button
+                    key={filterKey}
+                    type="button"
+                    onClick={() => setQuickFilter(filterKey)}
+                    className={[
+                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                      activeChip
+                        ? "border-violet-600 bg-violet-600 text-white"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {quickFilterLabel[filterKey]}
+                  </button>
+                );
+              })}
+            </div>
+
             {searchTerm.trim() && (
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
                 ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ จากทั้งหมด{" "}
@@ -416,7 +460,8 @@ export default function PharmacyPage() {
 
             {!searchTerm.trim() && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
-                กำลังเรียงข้อมูลแบบ <span className="font-semibold">{sortLabel[sortBy]}</span>
+                กำลังเรียงข้อมูลแบบ <span className="font-semibold">{sortLabel[sortBy]}</span> และใช้ฟิลเตอร์{" "}
+                <span className="font-semibold">{quickFilterLabel[quickFilter]}</span>
               </div>
             )}
 
@@ -782,7 +827,7 @@ function EmptyState() {
     <Card className="rounded-3xl border bg-slate-50">
       <CardContent className="p-10 text-center">
         <p className="text-lg font-bold text-slate-800">ยังไม่มีรายการในสถานะนี้</p>
-        <p className="mt-1 text-slate-600">ลองเลือกแท็บอื่น หรือกดรีเฟรช</p>
+        <p className="mt-1 text-slate-600">ลองเลือกแท็บอื่น หรือเปลี่ยนฟิลเตอร์</p>
       </CardContent>
     </Card>
   );
