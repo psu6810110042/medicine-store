@@ -46,6 +46,27 @@ function toggleInList(list: string[], value: string) {
   return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 }
 
+function isMedicineOrMedicalDeviceOrder(order: Order) {
+  return (order.items || []).some((item) => {
+    const product = item.product;
+    if (!product) return false;
+
+    const categoryId = String(product.categoryId || '').toLowerCase();
+
+    return (
+      product.requiresPrescription ||
+      product.isControlled ||
+      categoryId === 'medical-device' ||
+      categoryId.includes('medicine') ||
+      categoryId.includes('drug') ||
+      categoryId.includes('pharma') ||
+      categoryId.includes('painkiller') ||
+      categoryId.includes('antibiotic') ||
+      categoryId.includes('chronic')
+    );
+  });
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, checkAuth, logout, updateProfile } = useAuth();
@@ -263,8 +284,14 @@ export default function ProfilePage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, orderNeedsPharmacistFlow: boolean) => {
     const normalizedStatus = status.toUpperCase();
+    const effectiveStatus =
+      !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
+        ? 'PENDING_REVIEW'
+        : !orderNeedsPharmacistFlow && normalizedStatus === 'STOCK'
+        ? 'PROCESSING'
+        : normalizedStatus;
 
     const variants: { [key: string]: string } = {
       PENDING_REVIEW: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -287,32 +314,45 @@ export default function ProfilePage() {
     return (
       <span
         className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-          variants[normalizedStatus] ||
+          variants[effectiveStatus] ||
           'border-slate-200 bg-slate-100 text-slate-800'
         }`}
       >
-        {labels[normalizedStatus] || status}
+        {labels[effectiveStatus] || status}
       </span>
     );
   };
 
-  const getOrderTrackingSteps = (currentStatus: string) => {
+  const getOrderTrackingSteps = (
+    currentStatus: string,
+    orderNeedsPharmacistFlow: boolean
+  ) => {
     const normalizedStatus = currentStatus.toUpperCase();
-    const statusOrder = ['PENDING_REVIEW', 'PRESCRIPTION', 'STOCK', 'PROCESSING', 'DONE'];
+    const statusOrder = orderNeedsPharmacistFlow
+      ? ['PENDING_REVIEW', 'PRESCRIPTION', 'STOCK', 'PROCESSING', 'DONE']
+      : ['PENDING_REVIEW', 'PROCESSING', 'DONE'];
 
     const effectiveStatus = ['PENDING_REVIEW', 'UNPAID'].includes(normalizedStatus)
       ? 'PENDING_REVIEW'
+      : !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
+      ? 'PENDING_REVIEW'
+      : !orderNeedsPharmacistFlow && normalizedStatus === 'STOCK'
+      ? 'PROCESSING'
       : normalizedStatus;
 
     const currentIndex = statusOrder.indexOf(effectiveStatus);
 
-    const steps = [
+    const fullSteps = [
       { id: 'PENDING_REVIEW', name: 'รอตรวจสอบ', icon: Clock },
       { id: 'PRESCRIPTION', name: 'รอเภสัชกรอนุมัติใบสั่งยา', icon: FileText },
       { id: 'STOCK', name: 'ตรวจสอบแล้ว', icon: CheckCircle2 },
       { id: 'PROCESSING', name: 'กำลังเตรียมสินค้า', icon: Package },
       { id: 'DONE', name: 'จัดส่งแล้ว', icon: Truck },
     ];
+
+    const steps = orderNeedsPharmacistFlow
+      ? fullSteps
+      : fullSteps.filter((step) => step.id !== 'PRESCRIPTION' && step.id !== 'STOCK');
 
     return steps.map((step, index) => ({
       ...step,
@@ -771,7 +811,11 @@ export default function ProfilePage() {
               ) : (
                 <div className="mt-4 space-y-6">
                   {orders.map((order) => {
-                    const trackingSteps = getOrderTrackingSteps(order.status);
+                    const orderNeedsPharmacistFlow = isMedicineOrMedicalDeviceOrder(order);
+                    const trackingSteps = getOrderTrackingSteps(
+                      order.status,
+                      orderNeedsPharmacistFlow
+                    );
 
                     return (
                       <div
@@ -784,7 +828,7 @@ export default function ProfilePage() {
                               <h4 className="font-bold text-slate-900">
                                 คำสั่งซื้อ #{order.id.slice(0, 8).toUpperCase()}
                               </h4>
-                              {getStatusBadge(order.status)}
+                              {getStatusBadge(order.status, orderNeedsPharmacistFlow)}
                             </div>
                             <p className="mt-1 text-sm text-slate-500">
                               {new Date(order.createdAt).toLocaleDateString('th-TH', {
