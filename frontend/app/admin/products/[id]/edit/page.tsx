@@ -312,6 +312,19 @@ export default function EditProductPage() {
                                         placeholder="https://..."
                                     />
                                 </div>
+
+                                {formData.categoryId === 'medical-device' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-foreground mb-2">รายละเอียดการรับประกัน</label>
+                                        <textarea
+                                            name="warrantyInfo"
+                                            value={formData.warrantyInfo || ''}
+                                            onChange={handleChange}
+                                            rows={3}
+                                            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Buttons */}
