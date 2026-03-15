@@ -355,97 +355,103 @@ export default function PharmacyPage() {
           </TabsList>
         </Tabs>
 
-        <Card className="rounded-3xl border bg-white shadow-sm">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-lg font-bold text-slate-900">
-                  รายการ: {statusLabel[active]}
-                </CardTitle>
+        <Card className="overflow-visible rounded-3xl border bg-white shadow-sm">
+          <CardHeader className="sticky top-4 z-20 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-lg font-bold text-slate-900">
+                      รายการ: {statusLabel[active]}
+                    </CardTitle>
 
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  <ListFilter className="h-3.5 w-3.5" />
-                  กำลังแสดง {filtered.length} / {currentTabOrders.length} รายการ
-                </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <ListFilter className="h-3.5 w-3.5" />
+                      กำลังแสดง {filtered.length} / {currentTabOrders.length} รายการ
+                    </span>
 
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  เรียง: {sortLabel[sortBy]}
-                </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                      เรียง: {sortLabel[sortBy]}
+                    </span>
 
-                <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  ฟิลเตอร์: {quickFilterLabel[quickFilter]}
-                </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      ฟิลเตอร์: {quickFilterLabel[quickFilter]}
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    {active === OrderStatus.PRESCRIPTION
+                      ? "คำสั่งซื้อที่รอตรวจสอบใบสั่งแพทย์ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
+                      : "คลิกปุ่มเพื่อจัดการคำสั่งซื้อ"}
+                  </p>
+                </div>
               </div>
 
-              <p className="mt-1 text-sm text-slate-600">
-                {active === OrderStatus.PRESCRIPTION
-                  ? "คำสั่งซื้อที่รอตรวจสอบใบสั่งแพทย์ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
-                  : "คลิกปุ่มเพื่อจัดการคำสั่งซื้อ"}
-              </p>
-            </div>
+              <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+                <div className="relative w-full lg:max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
+                    className="w-full rounded-xl border bg-white py-2 pl-10 pr-10 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                  />
+                  {searchTerm.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="clear search"
+                      title="ล้างคำค้นหา"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="relative min-w-[260px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
-                  className="w-full rounded-xl border bg-white py-2 pl-10 pr-10 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
-                />
-                {searchTerm.trim() && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
+                    <ArrowUpDown className="h-4 w-4 text-slate-400" />
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="bg-transparent text-sm outline-none"
+                    >
+                      <option value="newest">ใหม่สุด</option>
+                      <option value="oldest">เก่าสุด</option>
+                      <option value="highest">ยอดสูงสุด</option>
+                      <option value="lowest">ยอดต่ำสุด</option>
+                    </select>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                    aria-label="clear search"
-                    title="ล้างคำค้นหา"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className={[
+                      "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
+                      refreshing ? "cursor-not-allowed opacity-60" : "",
+                    ].join(" ")}
                   >
-                    <X className="h-4 w-4" />
+                    {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
                   </button>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                  >
+                    รีเซ็ตตัวกรอง
+                  </button>
+                </div>
               </div>
-
-              <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
-                <ArrowUpDown className="h-4 w-4 text-slate-400" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-transparent text-sm outline-none"
-                >
-                  <option value="newest">ใหม่สุด</option>
-                  <option value="oldest">เก่าสุด</option>
-                  <option value="highest">ยอดสูงสุด</option>
-                  <option value="lowest">ยอดต่ำสุด</option>
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className={[
-                  "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
-                  refreshing ? "cursor-not-allowed opacity-60" : "",
-                ].join(" ")}
-              >
-                {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
-              </button>
-
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50"
-              >
-                รีเซ็ตตัวกรอง
-              </button>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-4 p-5">
+          <CardContent className="space-y-4 p-5 pt-4">
             {refreshing && orders.length === 0 ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
