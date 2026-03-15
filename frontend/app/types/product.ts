@@ -16,6 +16,7 @@ export interface Product {
     expiryDate?: string;
     manufacturer?: string;
     activeIngredient?: string;
+    warrantyInfo?: string;
     createdAt?: string;
     updatedAt?: string;
 }

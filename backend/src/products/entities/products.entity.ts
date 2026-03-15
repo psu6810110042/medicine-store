@@ -56,6 +56,9 @@ export class Product {
     @Column({ nullable: true })
     activeIngredient: string;
 
+    @Column('text', { nullable: true })
+    warrantyInfo: string;
+
     @CreateDateColumn()
     createdAt: Date;
 
