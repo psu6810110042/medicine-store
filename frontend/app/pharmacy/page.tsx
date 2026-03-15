@@ -89,6 +89,16 @@ const quickFilterLabel: Record<QuickFilter, string> = {
   highValue: "ยอดเกิน 500",
 };
 
+function formatCurrencyShort(amount: number) {
+  if (amount >= 1000000) {
+    return `฿${(amount / 1000000).toFixed(2)}M`;
+  }
+  if (amount >= 1000) {
+    return `฿${(amount / 1000).toFixed(1)}K`;
+  }
+  return `฿${amount.toLocaleString()}`;
+}
+
 export default function PharmacyPage() {
   const [active, setActive] = useState<OrderStatus>(OrderStatus.PENDING_REVIEW);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -301,7 +311,7 @@ export default function PharmacyPage() {
             />
             <StatCard
               title="ยอดขาย"
-              value={`฿${summary.sales.toLocaleString()}`}
+              value={formatCurrencyShort(summary.sales)}
               accent="from-sky-500 to-indigo-500"
               icon={<Coins className="h-6 w-6" />}
               subtitle="สรุปจากออเดอร์"
@@ -695,16 +705,35 @@ function StatCard({
   accent: string;
   icon: React.ReactNode;
 }) {
+  const displayValue = String(value);
+  const isLongValue = displayValue.length >= 9;
+  const isVeryLongValue = displayValue.length >= 12;
+
   return (
     <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className={`h-1 w-full bg-gradient-to-r ${accent}`} />
-      <CardContent className="flex items-start justify-between gap-3 p-5">
-        <div>
-          <p className="text-sm text-slate-500">{title}</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{value}</p>
-          <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+      <CardContent className="flex min-h-[152px] items-start justify-between gap-3 p-5">
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 min-h-[40px] text-sm leading-5 text-slate-500">{title}</p>
+
+          <div className="mt-2 min-h-[44px] max-w-full overflow-hidden">
+            <p
+              className={[
+                "truncate font-extrabold leading-none text-slate-900",
+                isVeryLongValue ? "text-xl" : isLongValue ? "text-2xl" : "text-3xl",
+              ].join(" ")}
+              title={displayValue}
+            >
+              {displayValue}
+            </p>
+          </div>
+
+          <p className="mt-2 line-clamp-2 min-h-[32px] text-xs leading-4 text-slate-500">
+            {subtitle}
+          </p>
         </div>
-        <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
+
+        <div className="shrink-0 rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
       </CardContent>
     </Card>
   );
@@ -714,7 +743,7 @@ function StatCardSkeleton() {
   return (
     <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
       <div className="h-1 w-full bg-slate-200" />
-      <CardContent className="flex items-start justify-between gap-3 p-5">
+      <CardContent className="flex min-h-[152px] items-start justify-between gap-3 p-5">
         <div className="flex-1 space-y-3">
           <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
           <div className="h-8 w-20 animate-pulse rounded bg-slate-200" />
