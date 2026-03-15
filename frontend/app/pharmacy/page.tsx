@@ -19,6 +19,7 @@ import {
   Ban,
   FileClock,
   ListFilter,
+  ArrowUpDown,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,15 @@ const statusBadgeMap: Record<
   },
 };
 
+type SortOption = "newest" | "oldest" | "highest" | "lowest";
+
+const sortLabel: Record<SortOption, string> = {
+  newest: "ใหม่สุด",
+  oldest: "เก่าสุด",
+  highest: "ยอดสูงสุด",
+  lowest: "ยอดต่ำสุด",
+};
+
 export default function PharmacyPage() {
   const [active, setActive] = useState<OrderStatus>(OrderStatus.PENDING_REVIEW);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -81,6 +91,7 @@ export default function PharmacyPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [stockCount, setStockCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -153,7 +164,7 @@ export default function PharmacyPage() {
   const filtered = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
 
-    return orders.filter((o) => {
+    const matched = orders.filter((o) => {
       const statusMatched = o.status === active;
       if (!statusMatched) return false;
       if (!keyword) return true;
@@ -166,7 +177,25 @@ export default function PharmacyPage() {
 
       return orderIdMatched || userMatched || itemMatched;
     });
-  }, [orders, active, searchTerm]);
+
+    const sorted = [...matched].sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      if (sortBy === "highest") {
+        return Number(b.totalAmount || 0) - Number(a.totalAmount || 0);
+      }
+      if (sortBy === "lowest") {
+        return Number(a.totalAmount || 0) - Number(b.totalAmount || 0);
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [orders, active, searchTerm, sortBy]);
 
   const summary = useMemo(() => {
     const pending = orders.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
@@ -312,6 +341,11 @@ export default function PharmacyPage() {
                   <ListFilter className="h-3.5 w-3.5" />
                   กำลังแสดง {filtered.length} / {currentTabOrders.length} รายการ
                 </span>
+
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  เรียง: {sortLabel[sortBy]}
+                </span>
               </div>
 
               <p className="mt-1 text-sm text-slate-600">
@@ -321,7 +355,7 @@ export default function PharmacyPage() {
               </p>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
               <div className="relative min-w-[260px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -344,6 +378,20 @@ export default function PharmacyPage() {
                 )}
               </div>
 
+              <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
+                <ArrowUpDown className="h-4 w-4 text-slate-400" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="bg-transparent text-sm outline-none"
+                >
+                  <option value="newest">ใหม่สุด</option>
+                  <option value="oldest">เก่าสุด</option>
+                  <option value="highest">ยอดสูงสุด</option>
+                  <option value="lowest">ยอดต่ำสุด</option>
+                </select>
+              </div>
+
               <button
                 type="button"
                 onClick={handleRefresh}
@@ -363,6 +411,12 @@ export default function PharmacyPage() {
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
                 ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ จากทั้งหมด{" "}
                 {currentTabOrders.length} รายการในสถานะนี้
+              </div>
+            )}
+
+            {!searchTerm.trim() && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+                กำลังเรียงข้อมูลแบบ <span className="font-semibold">{sortLabel[sortBy]}</span>
               </div>
             )}
 
