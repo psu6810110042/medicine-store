@@ -79,6 +79,7 @@ export default function PharmacyPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [stockCount, setStockCount] = useState<number>(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -144,7 +145,23 @@ export default function PharmacyPage() {
     await fetchAllOrders();
   };
 
-  const filtered = useMemo(() => orders.filter((o) => o.status === active), [orders, active]);
+  const filtered = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    return orders.filter((o) => {
+      const statusMatched = o.status === active;
+      if (!statusMatched) return false;
+      if (!keyword) return true;
+
+      const orderIdMatched = String(o.id).toLowerCase().includes(keyword);
+      const userMatched = (o.user?.email ?? "").toLowerCase().includes(keyword);
+      const itemMatched = (o.items ?? []).some((item) =>
+        (item.product?.name ?? "").toLowerCase().includes(keyword)
+      );
+
+      return orderIdMatched || userMatched || itemMatched;
+    });
+  }, [orders, active, searchTerm]);
 
   const summary = useMemo(() => {
     const pending = orders.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
@@ -291,20 +308,39 @@ export default function PharmacyPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className={[
-                "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
-                refreshing ? "cursor-not-allowed opacity-60" : "",
-              ].join(" ")}
-            >
-              {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
-            </button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="relative min-w-[260px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
+                  className="w-full rounded-xl border bg-white py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className={[
+                  "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
+                  refreshing ? "cursor-not-allowed opacity-60" : "",
+                ].join(" ")}
+              >
+                {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
+              </button>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4 p-5">
+            {searchTerm.trim() && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ
+              </div>
+            )}
+
             {active === OrderStatus.PRESCRIPTION ? (
               filtered.length === 0 ? (
                 <EmptyState />
