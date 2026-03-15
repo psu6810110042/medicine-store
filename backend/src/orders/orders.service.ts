@@ -25,6 +25,28 @@ export class OrdersService {
         private readonly dataSource: DataSource,
     ) { }
 
+    private isMedicineOrMedicalDeviceProduct(product: Product | undefined): boolean {
+        if (!product) return false;
+
+        const categoryId = String(product.categoryId || '').toLowerCase();
+
+        return (
+            product.requiresPrescription ||
+            product.isControlled ||
+            categoryId === 'medical-device' ||
+            categoryId.includes('medicine') ||
+            categoryId.includes('drug') ||
+            categoryId.includes('pharma') ||
+            categoryId.includes('painkiller') ||
+            categoryId.includes('antibiotic') ||
+            categoryId.includes('chronic')
+        );
+    }
+
+    private requiresPharmacistFlow(products: Product[]): boolean {
+        return products.some((product) => this.isMedicineOrMedicalDeviceProduct(product));
+    }
+
     async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
         const queryRunner = this.dataSource.createQueryRunner();
 
@@ -34,6 +56,7 @@ export class OrdersService {
         try {
             let totalAmount = 0;
             const orderItemsToSave: OrderItem[] = [];
+            const orderedProducts: Product[] = [];
 
             const cart = await queryRunner.manager.findOne(Cart, {
                 where: { user: { id: userId } }
@@ -67,6 +90,7 @@ export class OrdersService {
                 }
 
                 await queryRunner.manager.save(product);
+                orderedProducts.push(product);
 
                 const orderItem = new OrderItem();
                 orderItem.product = product;
@@ -85,8 +109,10 @@ export class OrdersService {
             order.notes = createOrderDto.notes;
             order.items = orderItemsToSave;
 
-            if (createOrderDto.prescriptionImage) {
+            if (this.requiresPharmacistFlow(orderedProducts) && createOrderDto.prescriptionImage) {
                 order.status = OrderStatus.PRESCRIPTION;
+            } else {
+                order.status = OrderStatus.PENDING_REVIEW;
             }
 
             const savedOrder = await queryRunner.manager.save(Order, order);
@@ -135,6 +161,19 @@ export class OrdersService {
         updateOrderStatusDto: UpdateOrderStatusDto,
     ): Promise<Order> {
         const order = await this.findOne(id);
+        const orderNeedsPharmacistFlow = order.items.some((item) =>
+            this.isMedicineOrMedicalDeviceProduct(item.product),
+        );
+
+        if (
+            !orderNeedsPharmacistFlow &&
+            (updateOrderStatusDto.status === OrderStatus.PRESCRIPTION ||
+                updateOrderStatusDto.status === OrderStatus.STOCK)
+        ) {
+            throw new BadRequestException(
+                'Orders that are not medicine/medical-device cannot use PRESCRIPTION or STOCK status',
+            );
+        }
 
         if (
             (order.status === OrderStatus.PROCESSING || order.status === OrderStatus.STOCK) &&
