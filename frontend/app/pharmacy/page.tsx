@@ -13,6 +13,11 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  Clock3,
+  Truck,
+  BadgeCheck,
+  Ban,
+  FileClock,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +35,39 @@ const statusLabel: Record<OrderStatus, string> = {
   DONE: "ส่งมอบแล้ว",
   CANCELLED: "ยกเลิกแล้ว",
   STOCK: "รอสินค้า",
+};
+
+const statusBadgeMap: Record<
+  OrderStatus,
+  {
+    className: string;
+    icon: React.ReactNode;
+  }
+> = {
+  PENDING_REVIEW: {
+    className: "border-amber-200 bg-amber-100 text-amber-700",
+    icon: <Clock3 className="h-3.5 w-3.5" />,
+  },
+  PRESCRIPTION: {
+    className: "border-sky-200 bg-sky-100 text-sky-700",
+    icon: <FileClock className="h-3.5 w-3.5" />,
+  },
+  PROCESSING: {
+    className: "border-emerald-200 bg-emerald-100 text-emerald-700",
+    icon: <Truck className="h-3.5 w-3.5" />,
+  },
+  DONE: {
+    className: "border-green-200 bg-green-100 text-green-700",
+    icon: <BadgeCheck className="h-3.5 w-3.5" />,
+  },
+  CANCELLED: {
+    className: "border-rose-200 bg-rose-100 text-rose-700",
+    icon: <Ban className="h-3.5 w-3.5" />,
+  },
+  STOCK: {
+    className: "border-violet-200 bg-violet-100 text-violet-700",
+    icon: <Package className="h-3.5 w-3.5" />,
+  },
 };
 
 export default function PharmacyPage() {
@@ -307,9 +345,7 @@ export default function PharmacyPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-extrabold text-slate-900">{selected.id}</p>
-                  <span className="rounded-full border bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
-                    {statusLabel[selected.status]}
-                  </span>
+                  <StatusBadge status={selected.status} />
                 </div>
 
                 <p className="mt-1 text-sm text-slate-600">
@@ -440,6 +476,19 @@ function StatCard({
   );
 }
 
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const badge = statusBadgeMap[status];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${badge.className}`}
+    >
+      {badge.icon}
+      {statusLabel[status]}
+    </span>
+  );
+}
+
 function OrderCard({
   order,
   onDetail,
@@ -453,15 +502,6 @@ function OrderCard({
   onApprove: () => void;
   onCancel: () => void;
 }) {
-  const badge =
-    order.status === OrderStatus.PENDING_REVIEW
-      ? "bg-amber-100 text-amber-700 border-amber-200"
-      : order.status === OrderStatus.PRESCRIPTION
-      ? "bg-sky-100 text-sky-700 border-sky-200"
-      : order.status === OrderStatus.PROCESSING
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : "bg-slate-100 text-slate-700 border-slate-200";
-
   const isFinished = order.status === OrderStatus.DONE || order.status === OrderStatus.CANCELLED;
 
   return (
@@ -471,9 +511,7 @@ function OrderCard({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-extrabold text-slate-900">{order.id}</p>
-              <span className={`rounded-full border px-2 py-0.5 text-xs ${badge}`}>
-                {statusLabel[order.status]}
-              </span>
+              <StatusBadge status={order.status} />
             </div>
             <p className="text-sm text-slate-600">
               ลูกค้า: <span className="font-semibold">Customer</span> •{" "}
@@ -804,9 +842,13 @@ function PrescriptionReviewCard({
           <p className="max-w-xs truncate font-mono text-xs text-slate-500">{order.id}</p>
         </div>
 
-        <p className="mt-1 text-sm text-slate-600">
-          ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-slate-600">
+            ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
+          </p>
+          <StatusBadge status={order.status} />
+        </div>
+
         <p className="text-xs text-slate-400">
           {new Date(order.createdAt).toLocaleString("th-TH", {
             dateStyle: "medium",
