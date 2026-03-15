@@ -7,8 +7,24 @@ import { categoryService } from '../../services/categoryService';
 import { Product, Category } from '../../types/product';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 import { Plus, Edit2, Trash2, ChevronLeft, Search } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../../../components/ui/dialog';
 import Image from 'next/image';
 
 export default function ProductsManagementPage() {
@@ -17,6 +33,7 @@ export default function ProductsManagementPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -38,14 +55,14 @@ export default function ProductsManagementPage() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('คุณแน่ใจหรือว่าต้องการลบสินค้านี้?')) {
-            try {
-                await productService.deleteProduct(id);
-                setProducts(products.filter(p => p.id !== id));
-            } catch (err) {
-                console.error('Failed to delete product:', err);
-                alert('ไม่สามารถลบสินค้าได้');
-            }
+        try {
+            await productService.deleteProduct(id);
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+            console.error('Failed to delete product:', err);
+            alert('ไม่สามารถลบสินค้าได้');
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
@@ -99,16 +116,17 @@ export default function ProductsManagementPage() {
                                 />
                             </div>
                             <div className="w-full md:w-48">
-                                <select
-                                    value={filterCategory}
-                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                    className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer"
-                                >
-                                    <option value="">ทั้งหมด</option>
-                                    {categories.map(cat => (
-                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                    ))}
-                                </select>
+                                <Select value={filterCategory || 'all'} onValueChange={(value) => setFilterCategory(value === 'all' ? '' : value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="ทั้งหมด" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                                        {categories.map(cat => (
+                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     </CardContent>
@@ -169,24 +187,17 @@ export default function ProductsManagementPage() {
                                                     <span className="font-semibold">฿{Number(product.price).toFixed(2)}</span>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
-                                                    <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-medium ${product.stockQuantity < 10
-                                                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                                                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                                        }`}>
+                                                    <Badge variant={product.stockQuantity < 10 ? 'destructive' : 'secondary'}>
                                                         {product.stockQuantity}
-                                                    </span>
+                                                    </Badge>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
                                                     <div className="flex gap-2 justify-center flex-wrap">
                                                         {product.isControlled && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                                                ยาควบคุม
-                                                            </span>
+                                                            <Badge variant="destructive">ยาควบคุม</Badge>
                                                         )}
                                                         {product.requiresPrescription && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                                ต้องใบสั่ง
-                                                            </span>
+                                                            <Badge variant="outline">ต้องใบสั่ง</Badge>
                                                         )}
                                                     </div>
                                                 </td>
@@ -198,13 +209,15 @@ export default function ProductsManagementPage() {
                                                                 แก้ไข
                                                             </Button>
                                                         </Link>
-                                                        <button
-                                                            onClick={() => handleDelete(product.id)}
-                                                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-900/50 transition-colors"
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            className="gap-1"
+                                                            onClick={() => setDeleteTarget(product)}
                                                         >
                                                             <Trash2 className="h-3 w-3" />
                                                             ลบ
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -215,6 +228,29 @@ export default function ProductsManagementPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>ยืนยันการลบสินค้า</DialogTitle>
+                            <DialogDescription>
+                                ต้องการลบสินค้า {deleteTarget?.name ? `"${deleteTarget.name}"` : 'นี้'} ใช่หรือไม่?
+                                การลบนี้ไม่สามารถย้อนกลับได้
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                                ยกเลิก
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
+                            >
+                                ยืนยันลบ
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );
