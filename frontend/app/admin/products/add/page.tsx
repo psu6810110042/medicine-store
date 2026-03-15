@@ -44,6 +44,7 @@ export default function AddProductPage() {
         warnings: '',
         image: '',
         properties: '',
+        warrantyInfo: '',
     });
 
     useEffect(() => {
@@ -332,6 +333,20 @@ export default function AddProductPage() {
                                         placeholder="ข้อมูลอื่นๆ"
                                     />
                                 </div>
+
+                                {formData.categoryId === 'medical-device' && (
+                                    <div>
+                                        <Label className="mb-2">รายละเอียดการรับประกัน</Label>
+                                        <textarea
+                                            name="warrantyInfo"
+                                            value={formData.warrantyInfo || ''}
+                                            onChange={handleChange}
+                                            rows={3}
+                                            placeholder="เช่น รับประกัน 1 ปี ครอบคลุมความเสียหายจากการผลิต"
+                                            className="w-full rounded-md border border-input bg-background px-4 py-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Buttons */}
