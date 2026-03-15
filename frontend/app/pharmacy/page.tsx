@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { orderService } from "@/app/services/orderService";
 import { Order, OrderItem, OrderStatus } from "@/app/types/order";
 import { Product } from "@/app/types/product";
@@ -41,7 +42,7 @@ export default function PharmacyPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [stockCount, setStockCount] = useState<number>(0);
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = useCallback(async () => {
     try {
       setRefreshing(true);
 
@@ -70,11 +71,11 @@ export default function PharmacyPage() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAllOrders();
-  }, []);
+  }, [fetchAllOrders]);
 
   const openDetail = (order: Order) => {
     setSelected(order);
@@ -89,7 +90,9 @@ export default function PharmacyPage() {
   const updateStatus = async (id: string, next: OrderStatus) => {
     try {
       const updated = await orderService.updateOrderStatus(id, next);
-      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: updated.status } : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: updated.status } : o))
+      );
       toast.success("อัปเดตสถานะสำเร็จ");
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -184,38 +187,47 @@ export default function PharmacyPage() {
           />
         </section>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Tab
-            active={active === OrderStatus.PENDING_REVIEW}
-            onClick={() => setActive(OrderStatus.PENDING_REVIEW)}
-            label={statusLabel[OrderStatus.PENDING_REVIEW]}
-            count={summary.pending}
-          />
-          <Tab
-            active={active === OrderStatus.PRESCRIPTION}
-            onClick={() => setActive(OrderStatus.PRESCRIPTION)}
-            label={statusLabel[OrderStatus.PRESCRIPTION]}
-            count={summary.prescription}
-          />
-          <Tab
-            active={active === OrderStatus.PROCESSING}
-            onClick={() => setActive(OrderStatus.PROCESSING)}
-            label={statusLabel[OrderStatus.PROCESSING]}
-            count={summary.processing}
-          />
-          <Tab
-            active={active === OrderStatus.DONE}
-            onClick={() => setActive(OrderStatus.DONE)}
-            label={statusLabel[OrderStatus.DONE]}
-            count={summary.delivered}
-          />
-          <Tab
-            active={active === OrderStatus.CANCELLED}
-            onClick={() => setActive(OrderStatus.CANCELLED)}
-            label={statusLabel[OrderStatus.CANCELLED]}
-            count={summary.cancelled}
-          />
-        </div>
+        <Tabs
+          value={active}
+          onValueChange={(value) => setActive(value as OrderStatus)}
+        >
+          <TabsList className="flex h-auto flex-wrap gap-2 bg-transparent p-0">
+            <TabsTrigger
+              value={OrderStatus.PENDING_REVIEW}
+              className="rounded-full border px-4 py-2 text-sm font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              {statusLabel[OrderStatus.PENDING_REVIEW]} ({summary.pending})
+            </TabsTrigger>
+
+            <TabsTrigger
+              value={OrderStatus.PRESCRIPTION}
+              className="rounded-full border px-4 py-2 text-sm font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              {statusLabel[OrderStatus.PRESCRIPTION]} ({summary.prescription})
+            </TabsTrigger>
+
+            <TabsTrigger
+              value={OrderStatus.PROCESSING}
+              className="rounded-full border px-4 py-2 text-sm font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              {statusLabel[OrderStatus.PROCESSING]} ({summary.processing})
+            </TabsTrigger>
+
+            <TabsTrigger
+              value={OrderStatus.DONE}
+              className="rounded-full border px-4 py-2 text-sm font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              {statusLabel[OrderStatus.DONE]} ({summary.delivered})
+            </TabsTrigger>
+
+            <TabsTrigger
+              value={OrderStatus.CANCELLED}
+              className="rounded-full border px-4 py-2 text-sm font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              {statusLabel[OrderStatus.CANCELLED]} ({summary.cancelled})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <Card className="rounded-3xl border bg-white shadow-sm">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b">
@@ -256,7 +268,9 @@ export default function PharmacyPage() {
                       onOrderUpdated={(updated) => {
                         setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
                       }}
-                      onStatusChange={(id, status) => updateStatus(id, status)}
+                      onStatusChange={async (id, status) => {
+                        await updateStatus(id, status);
+                      }}
                     />
                   ))}
                 </div>
@@ -423,40 +437,6 @@ function StatCard({
         <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
       </CardContent>
     </Card>
-  );
-}
-
-function Tab({
-  active,
-  onClick,
-  label,
-  count,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  count: number;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
-        active
-          ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-      ].join(" ")}
-    >
-      <span className="font-semibold">{label}</span>
-      <span
-        className={[
-          "min-w-[28px] rounded-full px-2 py-0.5 text-center text-xs",
-          active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700",
-        ].join(" ")}
-      >
-        {count}
-      </span>
-    </button>
   );
 }
 
@@ -680,7 +660,7 @@ function PrescriptionReviewCard({
 }: {
   order: Order;
   onOrderUpdated: (updated: Order) => void;
-  onStatusChange: (id: string, status: OrderStatus) => void;
+  onStatusChange: (id: string, status: OrderStatus) => Promise<void> | void;
 }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -808,7 +788,10 @@ function PrescriptionReviewCard({
     }
   };
 
-  const handleCancel = () => onStatusChange(order.id, OrderStatus.CANCELLED);
+  const handleCancel = async () => {
+    await onStatusChange(order.id, OrderStatus.CANCELLED);
+  };
+
   const prescriptionUrl = order.prescriptionImage ?? null;
 
   return (
@@ -922,7 +905,7 @@ function PrescriptionReviewCard({
               </div>
 
               {draftItems.length === 0 ? (
-                <p className="border border-dashed py-4 text-center text-xs italic text-slate-400 rounded-xl">
+                <p className="rounded-xl border border-dashed py-4 text-center text-xs italic text-slate-400">
                   ยังไม่มีรายการ — ค้นหาและเพิ่มยาด้านบน
                 </p>
               ) : (
