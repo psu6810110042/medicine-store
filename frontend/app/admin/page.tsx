@@ -7,6 +7,7 @@ import { categoryService } from '../services/categoryService';
 import { Product, Category } from '../types/product';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { Package, AlertCircle, ShieldAlert, TrendingUp, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Image from 'next/image';
@@ -96,7 +97,42 @@ export default function AdminDashboardPage() {
     }, [products]);
 
     if (loading) {
-        return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading Dashboard...</div>;
+        return (
+            <div className="min-h-screen bg-background p-8">
+                <div className="mx-auto max-w-7xl space-y-6">
+                    <div className="space-y-2">
+                        <div className="h-8 w-56 animate-pulse rounded-md bg-muted" />
+                        <div className="h-4 w-72 animate-pulse rounded-md bg-muted" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <Card key={i}>
+                                <CardHeader>
+                                    <div className="h-4 w-24 animate-pulse rounded-md bg-muted" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="h-8 w-14 animate-pulse rounded-md bg-muted" />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
+                        <Card className="col-span-1 lg:col-span-4">
+                            <CardContent className="pt-6">
+                                <div className="h-72 animate-pulse rounded-lg bg-muted" />
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-1 lg:col-span-3">
+                            <CardContent className="space-y-3 pt-6">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -107,7 +143,10 @@ export default function AdminDashboardPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-                        <p className="text-muted-foreground">ภาพรวมระบบคลังสินค้า</p>
+                        <div className="mt-2 flex items-center gap-2">
+                            <p className="text-muted-foreground">ภาพรวมระบบคลังสินค้า</p>
+                            <Badge variant="secondary">Admin</Badge>
+                        </div>
                     </div>
                     <div className="flex gap-3">
                         <Link href="/admin/orders">
@@ -145,7 +184,9 @@ export default function AdminDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-amber-600">{stats.lowStockCount}</div>
-                            <p className="text-xs text-muted-foreground">เหลือน้อยกว่า 10 ชิ้น</p>
+                            <div className="mt-1">
+                                <Badge variant="outline">เหลือน้อยกว่า 10</Badge>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -169,7 +210,9 @@ export default function AdminDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-red-600">{expiringCount}</div>
-                            <p className="text-xs text-muted-foreground">หมดอายุภายใน 30 วัน</p>
+                            <div className="mt-1">
+                                <Badge variant="destructive">ภายใน 30 วัน</Badge>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -260,9 +303,7 @@ export default function AdminDashboardPage() {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                                    เหลือ {item.stockQuantity}
-                                                </span>
+                                                <Badge variant="destructive">เหลือ {item.stockQuantity}</Badge>
                                             </div>
                                         </div>
                                     ))
@@ -277,7 +318,8 @@ export default function AdminDashboardPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5 text-red-500" />
-                            ⚠️ สินค้าใกล้หมดอายุ (ภายใน 30 วัน)
+                            สินค้าใกล้หมดอายุ
+                            <Badge variant="destructive">ภายใน 30 วัน</Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -306,9 +348,11 @@ export default function AdminDashboardPage() {
                                             <p className="text-sm font-bold text-red-600 dark:text-red-400">
                                                 หมดอายุ: {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('th-TH') : 'ไม่ระบุ'}
                                             </p>
-                                            <p className="text-xs text-red-500 dark:text-red-300 mt-1">
-                                                คงเหลือ: {item.stockQuantity} ชิ้น
-                                            </p>
+                                            <div className="mt-1">
+                                                <Badge variant="outline" className="border-red-300 text-red-600 dark:text-red-300">
+                                                    คงเหลือ: {item.stockQuantity}
+                                                </Badge>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
