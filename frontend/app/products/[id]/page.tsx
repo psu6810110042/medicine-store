@@ -238,6 +238,13 @@ export default function ProductDetailPage() {
                                         </div>
                                     )}
 
+                                    {product.warrantyInfo && product.categoryId === 'medical-device' && (
+                                        <div>
+                                            <p className="text-sm text-gray-600 font-medium">การรับประกัน</p>
+                                            <p className="text-gray-900">{product.warrantyInfo}</p>
+                                        </div>
+                                    )}
+
                                     {product.properties && (
                                         <div>
                                             <p className="text-sm text-gray-600 font-medium">คุณสมบัติ</p>
