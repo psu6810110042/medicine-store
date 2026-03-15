@@ -356,7 +356,7 @@ export default function PharmacyPage() {
         </Tabs>
 
         <Card className="overflow-visible rounded-3xl border bg-white shadow-sm">
-          <CardHeader className="sticky top-4 z-20 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+          <CardHeader className="sticky top-4 z-30 border-b border-slate-200/80 bg-white/95 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur supports-[backdrop-filter]:bg-white/85">
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -397,7 +397,7 @@ export default function PharmacyPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="ค้นหาเลขออเดอร์ / ลูกค้า / ชื่อยา"
-                    className="w-full rounded-xl border bg-white py-2 pl-10 pr-10 text-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-800 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
                   />
                   {searchTerm.trim() && (
                     <button
@@ -413,12 +413,12 @@ export default function PharmacyPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                  <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-2.5 shadow-sm transition hover:border-emerald-200">
                     <ArrowUpDown className="h-4 w-4 text-slate-400" />
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="bg-transparent text-sm outline-none"
+                      className="bg-transparent text-sm text-slate-700 outline-none"
                     >
                       <option value="newest">ใหม่สุด</option>
                       <option value="oldest">เก่าสุด</option>
@@ -432,7 +432,7 @@ export default function PharmacyPage() {
                     onClick={handleRefresh}
                     disabled={refreshing}
                     className={[
-                      "rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50",
+                      "rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white",
                       refreshing ? "cursor-not-allowed opacity-60" : "",
                     ].join(" ")}
                   >
@@ -442,7 +442,7 @@ export default function PharmacyPage() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                    className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-white"
                   >
                     รีเซ็ตตัวกรอง
                   </button>
@@ -463,10 +463,10 @@ export default function PharmacyPage() {
                         type="button"
                         onClick={() => setQuickFilter(filterKey)}
                         className={[
-                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                          "rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition",
                           activeChip
-                            ? "border-violet-600 bg-violet-600 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                            ? "border-violet-600 bg-violet-600 text-white shadow-violet-200"
+                            : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50",
                         ].join(" ")}
                       >
                         {quickFilterLabel[filterKey]}
@@ -492,10 +492,10 @@ export default function PharmacyPage() {
                         type="button"
                         onClick={() => setQuickFilter(filterKey)}
                         className={[
-                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                          "rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition",
                           activeChip
-                            ? "border-violet-600 bg-violet-600 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                            ? "border-violet-600 bg-violet-600 text-white shadow-violet-200"
+                            : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50",
                         ].join(" ")}
                       >
                         {quickFilterLabel[filterKey]}
@@ -704,9 +704,7 @@ function StatCard({
           <p className="mt-2 text-3xl font-extrabold text-slate-900">{value}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
-        <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700 transition group-hover:bg-slate-100">
-          {icon}
-        </div>
+        <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
       </CardContent>
     </Card>
   );
