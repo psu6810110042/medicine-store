@@ -194,13 +194,27 @@ export default function PharmacyPage() {
           </CardHeader>
         </Card>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard
             title="รอตรวจสอบ"
             value={summary.pending}
             accent="from-amber-500 to-orange-500"
             icon={<ClipboardList className="h-6 w-6" />}
             subtitle="คำสั่งซื้อที่ต้องตรวจ"
+          />
+          <StatCard
+            title="รอตรวจใบสั่งยา"
+            value={summary.prescription}
+            accent="from-indigo-500 to-purple-500"
+            icon={<FileClock className="h-6 w-6" />}
+            subtitle="ต้องตรวจใบสั่งแพทย์"
+          />
+          <StatCard
+            title="กำลังดำเนินการ"
+            value={summary.processing}
+            accent="from-teal-500 to-cyan-500"
+            icon={<Truck className="h-6 w-6" />}
+            subtitle="กำลังจัดยา"
           />
           <StatCard
             title="คำสั่งซื้อทั้งหมด"
@@ -225,10 +239,7 @@ export default function PharmacyPage() {
           />
         </section>
 
-        <Tabs
-          value={active}
-          onValueChange={(value) => setActive(value as OrderStatus)}
-        >
+        <Tabs value={active} onValueChange={(value) => setActive(value as OrderStatus)}>
           <TabsList className="flex h-auto flex-wrap gap-2 bg-transparent p-0">
             <TabsTrigger
               value={OrderStatus.PENDING_REVIEW}
