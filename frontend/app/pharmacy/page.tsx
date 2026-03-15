@@ -619,7 +619,7 @@ export default function PharmacyPage() {
                     href={selected.prescriptionImage}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                    className="rounded-xl border bg-white px-3 py-2 text-sm transition hover:bg-slate-50"
                   >
                     เปิดเต็ม (แท็บใหม่)
                   </a>
@@ -629,14 +629,14 @@ export default function PharmacyPage() {
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <button
                       onClick={() => window.open(selected.prescriptionImage!, "_blank")}
-                      className="group overflow-hidden rounded-2xl border bg-slate-50 text-left lg:col-span-2"
+                      className="group overflow-hidden rounded-2xl border bg-slate-50 text-left transition hover:border-emerald-200 hover:bg-slate-100/80 lg:col-span-2"
                     >
                       <div className="relative aspect-[16/9] w-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={selected.prescriptionImage}
                           alt="prescription"
-                          className="h-full w-full object-contain"
+                          className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                         />
                       </div>
                       <div className="p-3 text-sm text-slate-600 group-hover:text-slate-800">
@@ -696,7 +696,7 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
+    <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className={`h-1 w-full bg-gradient-to-r ${accent}`} />
       <CardContent className="flex items-start justify-between gap-3 p-5">
         <div>
@@ -704,7 +704,9 @@ function StatCard({
           <p className="mt-2 text-3xl font-extrabold text-slate-900">{value}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
-        <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700">{icon}</div>
+        <div className="rounded-2xl border bg-slate-50 p-3 text-slate-700 transition group-hover:bg-slate-100">
+          {icon}
+        </div>
       </CardContent>
     </Card>
   );
@@ -800,12 +802,14 @@ function OrderCard({
   const isFinished = order.status === OrderStatus.DONE || order.status === OrderStatus.CANCELLED;
 
   return (
-    <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm">
+    <Card className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg">
       <CardContent className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-extrabold text-slate-900">{order.id}</p>
+              <p className="font-extrabold text-slate-900 transition-colors group-hover:text-emerald-700">
+                {order.id}
+              </p>
               <StatusBadge status={order.status} />
             </div>
             <p className="text-sm text-slate-600">
@@ -814,7 +818,7 @@ function OrderCard({
             </p>
 
             {order.shippingAddress && (
-              <p className="mt-2 break-words rounded-lg bg-slate-100 p-2 text-sm text-slate-600">
+              <p className="mt-2 break-words rounded-lg bg-slate-100 p-2 text-sm text-slate-600 transition-colors group-hover:bg-slate-50">
                 <span className="block font-semibold">ที่อยู่จัดส่ง:</span>
                 {typeof order.shippingAddress === "string"
                   ? order.shippingAddress
@@ -829,12 +833,14 @@ function OrderCard({
 
           <div className="text-right">
             <p className="text-xs text-slate-500">รวม</p>
-            <p className="text-xl font-extrabold text-emerald-700">฿{order.totalAmount}</p>
+            <p className="text-xl font-extrabold text-emerald-700 transition-transform duration-200 group-hover:scale-[1.02]">
+              ฿{order.totalAmount}
+            </p>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Card className="rounded-2xl border bg-slate-50 lg:col-span-2">
+          <Card className="rounded-2xl border bg-slate-50 transition-colors group-hover:border-emerald-100 group-hover:bg-slate-50/80 lg:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold text-slate-900">รายการยา</CardTitle>
             </CardHeader>
@@ -852,7 +858,7 @@ function OrderCard({
               ))}
 
               {order.prescriptionImage ? (
-                <div className="mt-4 rounded-2xl border bg-white p-3">
+                <div className="mt-4 rounded-2xl border bg-white p-3 transition-all duration-200 hover:border-emerald-200 hover:shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-bold text-slate-900">ใบสั่งแพทย์</p>
                     <a
@@ -869,7 +875,7 @@ function OrderCard({
                     <img
                       src={order.prescriptionImage}
                       alt="prescription"
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-contain transition duration-300 hover:scale-[1.01]"
                     />
                   </div>
                 </div>
@@ -878,7 +884,7 @@ function OrderCard({
           </Card>
 
           {order.notes ? (
-            <Card className="rounded-2xl border bg-amber-50/60">
+            <Card className="rounded-2xl border bg-amber-50/60 transition-colors group-hover:border-amber-200 group-hover:bg-amber-50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold text-slate-900">หมายเหตุเพิ่มเติม</CardTitle>
               </CardHeader>
@@ -890,7 +896,7 @@ function OrderCard({
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={onDetail}
-            className="rounded-xl border bg-white px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-xl border bg-white px-4 py-2 text-sm transition hover:bg-slate-50"
           >
             ดูรายละเอียด
           </button>
@@ -898,7 +904,7 @@ function OrderCard({
           <div className="flex items-center gap-2">
             <button
               onClick={onReview}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-black"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white transition hover:bg-black"
             >
               ตรวจสอบ
             </button>
@@ -917,7 +923,7 @@ function OrderCard({
                 ) : (
                   <button
                     onClick={onApprove}
-                    className="rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+                    className="rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white transition hover:bg-emerald-700"
                   >
                     ยืนยัน
                   </button>
@@ -925,7 +931,7 @@ function OrderCard({
 
                 <button
                   onClick={onCancel}
-                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700"
+                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm text-white transition hover:bg-rose-700"
                 >
                   ยกเลิก
                 </button>
@@ -1139,7 +1145,7 @@ function PrescriptionReviewCard({
   const prescriptionUrl = order.prescriptionImage ?? null;
 
   return (
-    <Card className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+    <Card className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg">
       <CardHeader className="border-b bg-gradient-to-r from-violet-50 to-indigo-50">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
@@ -1165,7 +1171,7 @@ function PrescriptionReviewCard({
 
       <CardContent className="p-0">
         <div className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
-          <div className="flex shrink-0 flex-col items-center gap-3 bg-slate-50 p-4 md:w-52">
+          <div className="flex shrink-0 flex-col items-center gap-3 bg-slate-50 p-4 transition-colors group-hover:bg-violet-50/40 md:w-52">
             <p className="self-start text-xs font-semibold uppercase tracking-wide text-slate-400">
               ใบสั่งยา
             </p>
@@ -1201,7 +1207,7 @@ function PrescriptionReviewCard({
             <div>
               <p className="mb-1.5 text-sm font-semibold text-slate-700">เพิ่มรายการยา</p>
               <div className="relative">
-                <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2">
+                <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2 transition-colors hover:border-violet-200 hover:bg-white">
                   <Search className="h-4 w-4 shrink-0 text-slate-400" />
                   <input
                     ref={searchRef}
@@ -1261,7 +1267,7 @@ function PrescriptionReviewCard({
                   {draftItems.map((item) => (
                     <div
                       key={item.product.id}
-                      className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2.5"
+                      className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2.5 transition-colors hover:border-violet-200 hover:bg-violet-50/40"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-800">
@@ -1279,7 +1285,7 @@ function PrescriptionReviewCard({
                         <button
                           type="button"
                           onClick={() => changeQty(item.product.id, -1)}
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 hover:bg-red-50"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-red-50"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -1288,7 +1294,7 @@ function PrescriptionReviewCard({
                           type="button"
                           onClick={() => changeQty(item.product.id, 1)}
                           disabled={item.quantity >= (item.product.stockQuantity ?? 999)}
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-emerald-50 disabled:opacity-40"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
