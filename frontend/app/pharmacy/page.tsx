@@ -18,6 +18,7 @@ import {
   BadgeCheck,
   Ban,
   FileClock,
+  ListFilter,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,6 +145,10 @@ export default function PharmacyPage() {
     setSelected(null);
     await fetchAllOrders();
   };
+
+  const currentTabOrders = useMemo(() => {
+    return orders.filter((o) => o.status === active);
+  }, [orders, active]);
 
   const filtered = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -298,9 +303,17 @@ export default function PharmacyPage() {
         <Card className="rounded-3xl border bg-white shadow-sm">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b">
             <div>
-              <CardTitle className="text-lg font-bold text-slate-900">
-                รายการ: {statusLabel[active]}
-              </CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-lg font-bold text-slate-900">
+                  รายการ: {statusLabel[active]}
+                </CardTitle>
+
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <ListFilter className="h-3.5 w-3.5" />
+                  กำลังแสดง {filtered.length} / {currentTabOrders.length} รายการ
+                </span>
+              </div>
+
               <p className="mt-1 text-sm text-slate-600">
                 {active === OrderStatus.PRESCRIPTION
                   ? "คำสั่งซื้อที่รอตรวจสอบใบสั่งแพทย์ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
@@ -348,7 +361,8 @@ export default function PharmacyPage() {
           <CardContent className="space-y-4 p-5">
             {searchTerm.trim() && (
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-                ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ
+                ผลการค้นหา “{searchTerm}” พบ {filtered.length} รายการ จากทั้งหมด{" "}
+                {currentTabOrders.length} รายการในสถานะนี้
               </div>
             )}
 
