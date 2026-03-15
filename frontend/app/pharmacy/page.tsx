@@ -343,7 +343,11 @@ export default function PharmacyPage() {
 
             {active === OrderStatus.PRESCRIPTION ? (
               filtered.length === 0 ? (
-                <EmptyState />
+                searchTerm.trim() ? (
+                  <SearchEmptyState keyword={searchTerm} />
+                ) : (
+                  <EmptyState />
+                )
               ) : (
                 <div className="space-y-6">
                   {filtered.map((order) => (
@@ -361,7 +365,11 @@ export default function PharmacyPage() {
                 </div>
               )
             ) : filtered.length === 0 ? (
-              <EmptyState />
+              searchTerm.trim() ? (
+                <SearchEmptyState keyword={searchTerm} />
+              ) : (
+                <EmptyState />
+              )
             ) : (
               filtered.map((order) => (
                 <OrderCard
@@ -696,6 +704,17 @@ function EmptyState() {
       <CardContent className="p-10 text-center">
         <p className="text-lg font-bold text-slate-800">ยังไม่มีรายการในสถานะนี้</p>
         <p className="mt-1 text-slate-600">ลองเลือกแท็บอื่น หรือกดรีเฟรช</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SearchEmptyState({ keyword }: { keyword: string }) {
+  return (
+    <Card className="rounded-3xl border bg-slate-50">
+      <CardContent className="p-10 text-center">
+        <p className="text-lg font-bold text-slate-800">ไม่พบรายการที่ค้นหา</p>
+        <p className="mt-1 text-slate-600">ไม่พบข้อมูลสำหรับ “{keyword}” ในสถานะนี้</p>
       </CardContent>
     </Card>
   );
