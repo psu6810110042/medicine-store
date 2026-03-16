@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import * as bcrypt from 'bcrypt';
+import { UserRole } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +21,26 @@ export class UsersService {
             phone: phoneNumber,
         });
         return this.usersRepository.save(newUser);
+    }
+
+    async createPharmacist(createUserDto: RegisterDto): Promise<User> {
+        const existingUser = await this.findByEmail(createUserDto.email);
+        if (existingUser) {
+            throw new BadRequestException('Email already in use');
+        }
+
+        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+        const { phoneNumber, ...rest } = createUserDto;
+
+        const newUser = this.usersRepository.create({
+            ...rest,
+            phone: phoneNumber,
+            password: hashedPassword,
+            role: UserRole.PHARMACIST,
+        });
+
+        const savedUser = await this.usersRepository.save(newUser);
+        return this.findById(savedUser.id);
     }
 
     async findByEmail(email: string): Promise<User | null> {
