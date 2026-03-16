@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Package,
@@ -65,9 +65,16 @@ function isNonControlledOrder(order: Order) {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, checkAuth, logout, updateProfile } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'health' | 'orders'>('personal');
+  const initialTab = (() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'orders' || tab === 'health') return tab;
+    return 'personal';
+  })();
+
+  const [activeTab, setActiveTab] = useState<'personal' | 'health' | 'orders'>(initialTab);
 
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [personalForm, setPersonalForm] = useState({

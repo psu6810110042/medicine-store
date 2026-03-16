@@ -223,13 +223,9 @@ function CartContent() {
                 });
             }
 
-            if (requiresPrescription) {
-                toast.success('ส่งคำสั่งซื้อสำเร็จ! เภสัชกรจะตรวจสอบใบสั่งยาของคุณ กรุณารอการอนุมัติก่อนชำระเงิน');
-                router.push('/profile');
-            } else {
-                toast.success('สั่งซื้อสินค้าสำเร็จ!');
-                router.push(`/payment/${createdOrder.id}`);
-            }
+            // ไปหน้าประวัติคำสั่งซื้อทุกกรณีหลังสั่งซื้อสำเร็จ
+            toast.success('สั่งซื้อสำเร็จ! สามารถตรวจสอบสถานะได้ที่ประวัติคำสั่งซื้อ');
+            router.push('/profile?tab=orders');
         } catch (error) {
             console.error('Checkout failed:', error);
             toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง');
