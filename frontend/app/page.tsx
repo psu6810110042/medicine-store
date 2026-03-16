@@ -49,6 +49,9 @@ import { useRouter } from 'next/navigation';
 import { productService } from '@/app/services/productService';
 import { categoryService } from '@/app/services/categoryService';
 import { Product, Category } from '@/app/types/product';
+import { orderService } from '@/app/services/orderService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Order } from '@/app/types/order';
 
 function SearchForm() {
   const [search, setSearch] = useState('');
@@ -258,10 +261,12 @@ function ProductCard({ product, onNavigate }: { product: Product; onNavigate: ()
 
 function StoreContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [approvedPrescriptionOrders, setApprovedPrescriptionOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -282,6 +287,49 @@ function StoreContent() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!user || user.role !== 'customer') {
+      setApprovedPrescriptionOrders([]);
+      return;
+    }
+
+    let mounted = true;
+
+    const fetchApprovedPrescriptionOrders = async () => {
+      try {
+        const myOrders = await orderService.getMyOrders();
+
+        const pendingPaymentAfterPharmacistApproved = myOrders.filter((order) => {
+          const normalizedStatus = (order.status || '').toUpperCase();
+          const paymentStatus = (order.paymentStatus || '').toUpperCase();
+
+          return (
+            Boolean(order.prescriptionImage) &&
+            ['PENDING_REVIEW', 'PROCESSING'].includes(normalizedStatus) &&
+            (!paymentStatus || paymentStatus === 'UNPAID')
+          );
+        });
+
+        if (mounted) {
+          pendingPaymentAfterPharmacistApproved.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setApprovedPrescriptionOrders(pendingPaymentAfterPharmacistApproved);
+        }
+      } catch (error) {
+        console.error('Failed to fetch approved prescription notifications:', error);
+      }
+    };
+
+    fetchApprovedPrescriptionOrders();
+    const intervalId = window.setInterval(fetchApprovedPrescriptionOrders, 30000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [user]);
 
   const getIconComponent = (iconName: string) => {
     type IconMap = Record<string, React.ElementType>;
@@ -339,6 +387,36 @@ function StoreContent() {
           {/* Search Bar */}
           <SearchForm />
         </header>
+
+        {approvedPrescriptionOrders.length > 0 && (
+          <section className="mb-8">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 md:p-5 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-emerald-800">แจ้งเตือนการชำระเงิน</p>
+                  <p className="text-sm text-emerald-700 mt-1">
+                    เภสัชกรอนุมัติใบสั่งยาแล้ว {approvedPrescriptionOrders.length} รายการ กรุณาชำระเงินเพื่อดำเนินการต่อ
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => router.push(`/payment/${approvedPrescriptionOrders[0].id}`)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    ไปหน้าชำระเงิน
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push('/profile?tab=orders')}
+                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  >
+                    ดูประวัติคำสั่งซื้อ
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Categories */}
         <section className="mb-16">
