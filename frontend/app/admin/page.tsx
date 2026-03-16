@@ -61,7 +61,10 @@ export default function AdminDashboardPage() {
     const categoryData = useMemo(() => {
         const counts: Record<string, number> = {};
         products.forEach((p: Product) => {
-            const catName = categories.find((c: Category) => c.id === p.categoryId)?.name || 'Uncategorized';
+            const catName =
+                p.category?.name ||
+                categories.find((c: Category) => c.id === p.categoryId)?.name ||
+                'ไม่มีหมวดหมู่';
             counts[catName] = (counts[catName] || 0) + 1;
         });
         return Object.keys(counts).map((key) => ({ name: key, count: counts[key] }));
@@ -325,16 +328,20 @@ export default function AdminDashboardPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pl-2">
-                            <div className="h-[300px] w-full">
+                            <div className="h-[380px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={categoryData}>
+                                    <BarChart data={categoryData} margin={{ bottom: 80 }}>
                                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                         <XAxis
                                             dataKey="name"
                                             stroke="#888888"
-                                            fontSize={12}
+                                            fontSize={11}
                                             tickLine={false}
                                             axisLine={false}
+                                            interval={0}
+                                            angle={-40}
+                                            textAnchor="end"
+                                            height={90}
                                         />
                                         <YAxis
                                             stroke="#888888"
