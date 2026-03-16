@@ -294,7 +294,8 @@ export default function ProfilePage() {
         : normalizedStatus;
 
     const variants: { [key: string]: string } = {
-      PENDING_REVIEW: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      PENDING_REVIEW: 'bg-blue-100 text-blue-800 border-blue-200',
+      UNPAID: 'bg-blue-100 text-blue-800 border-blue-200',
       PRESCRIPTION: 'bg-blue-100 text-blue-800 border-blue-200',
       STOCK: 'bg-indigo-100 text-indigo-800 border-indigo-200',
       PROCESSING: 'bg-orange-100 text-orange-800 border-orange-200',
@@ -304,6 +305,7 @@ export default function ProfilePage() {
 
     const labels: { [key: string]: string } = {
       PENDING_REVIEW: orderNeedsPharmacistFlow ? 'ชำระเงิน' : (useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน'),
+      UNPAID: 'รอชำระเงิน',
       PRESCRIPTION: 'รอเภสัชกรตรวจสอบและเพิ่มสินค้า',
       STOCK: 'กำลังเตรียมสินค้า / จัดส่ง',
       PROCESSING: 'กำลังเตรียมสินค้า / จัดส่ง',
@@ -333,13 +335,16 @@ export default function ProfilePage() {
       ? ['PRESCRIPTION', 'PENDING_REVIEW', 'PROCESSING', 'DONE']
       : ['PENDING_REVIEW', 'PROCESSING', 'DONE'];
 
-    const effectiveStatus = ['PENDING_REVIEW', 'UNPAID'].includes(normalizedStatus)
-      ? 'PENDING_REVIEW'
-      : !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
-      ? 'PENDING_REVIEW'
-      : normalizedStatus === 'STOCK'
-      ? 'PROCESSING'
-      : normalizedStatus;
+    // ถ้ายังไม่ชำระเงิน (PENDING_REVIEW หรือ UNPAID) ให้หยุดที่ขั้นตอนรอชำระเงิน
+    let effectiveStatus = normalizedStatus;
+    // ถ้ายังไม่ชำระเงิน (PENDING_REVIEW หรือ UNPAID) ให้หยุดที่ขั้นตอนรอชำระเงิน
+    if (["PENDING_REVIEW", "UNPAID"].includes(normalizedStatus)) {
+      effectiveStatus = "PENDING_REVIEW";
+    } else if (!orderNeedsPharmacistFlow && normalizedStatus === "PRESCRIPTION") {
+      effectiveStatus = "PENDING_REVIEW";
+    } else if (["STOCK", "PROCESSING"].includes(normalizedStatus)) {
+      effectiveStatus = "PROCESSING";
+    }
 
     const currentIndex = statusOrder.indexOf(effectiveStatus);
 
@@ -795,7 +800,21 @@ export default function ProfilePage() {
 
         {activeTab === 'orders' && (
           <div className="max-w-4xl">
-            <SectionCard title="ประวัติคำสั่งซื้อ">
+            <SectionCard
+              title={
+                <div className="flex items-center gap-2">
+                  <span>ประวัติคำสั่งซื้อ</span>
+                  <button
+                    onClick={fetchOrders}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 hover:text-sky-900 transition disabled:opacity-50"
+                    disabled={isLoadingOrders}
+                    title="รีเฟรชรายการ"
+                  >
+                    {isLoadingOrders ? 'กำลังโหลด...' : 'รีเฟรช'}
+                  </button>
+                </div>
+              }
+            >
               {isLoadingOrders ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"></div>
