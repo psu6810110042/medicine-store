@@ -51,20 +51,16 @@ function isMedicineOrMedicalDeviceOrder(order: Order) {
     const product = item.product;
     if (!product) return false;
 
-    const categoryId = String(product.categoryId || '').toLowerCase();
-
-    return (
-      product.requiresPrescription ||
-      product.isControlled ||
-      categoryId === 'medical-device' ||
-      categoryId.includes('medicine') ||
-      categoryId.includes('drug') ||
-      categoryId.includes('pharma') ||
-      categoryId.includes('painkiller') ||
-      categoryId.includes('antibiotic') ||
-      categoryId.includes('chronic')
-    );
+    // Only controlled products require pharmacist approval.
+    return product.isControlled;
   });
+}
+
+function isNonControlledOrder(order: Order) {
+  const items = order.items || [];
+  if (items.length === 0) return false;
+
+  return !items.some((item) => item.product?.isControlled);
 }
 
 export default function ProfilePage() {
@@ -284,12 +280,16 @@ export default function ProfilePage() {
     }
   };
 
-  const getStatusBadge = (status: string, orderNeedsPharmacistFlow: boolean) => {
+  const getStatusBadge = (
+    status: string,
+    orderNeedsPharmacistFlow: boolean,
+    useReviewPendingLabel: boolean
+  ) => {
     const normalizedStatus = status.toUpperCase();
     const effectiveStatus =
       !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
         ? 'PENDING_REVIEW'
-        : !orderNeedsPharmacistFlow && normalizedStatus === 'STOCK'
+        : normalizedStatus === 'STOCK'
         ? 'PROCESSING'
         : normalizedStatus;
 
@@ -303,9 +303,9 @@ export default function ProfilePage() {
     };
 
     const labels: { [key: string]: string } = {
-      PENDING_REVIEW: 'รอตรวจสอบ/รอชำระเงิน',
-      PRESCRIPTION: 'รอเภสัชกรอนุมัติใบสั่งยา',
-      STOCK: 'ตรวจสอบแล้ว',
+      PENDING_REVIEW: useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน',
+      PRESCRIPTION: 'รอเภสัชตรวจสอบอนุมัติ',
+      STOCK: 'กำลังเตรียมสินค้า / จัดส่ง',
       PROCESSING: 'กำลังเตรียมสินค้า / จัดส่ง',
       DONE: 'ส่งสำเร็จ',
       CANCELLED: 'ยกเลิก',
@@ -325,34 +325,38 @@ export default function ProfilePage() {
 
   const getOrderTrackingSteps = (
     currentStatus: string,
-    orderNeedsPharmacistFlow: boolean
+    orderNeedsPharmacistFlow: boolean,
+    useReviewPendingLabel: boolean
   ) => {
     const normalizedStatus = currentStatus.toUpperCase();
     const statusOrder = orderNeedsPharmacistFlow
-      ? ['PENDING_REVIEW', 'PRESCRIPTION', 'STOCK', 'PROCESSING', 'DONE']
+      ? ['PRESCRIPTION', 'PENDING_REVIEW', 'PROCESSING', 'DONE']
       : ['PENDING_REVIEW', 'PROCESSING', 'DONE'];
 
     const effectiveStatus = ['PENDING_REVIEW', 'UNPAID'].includes(normalizedStatus)
       ? 'PENDING_REVIEW'
       : !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
       ? 'PENDING_REVIEW'
-      : !orderNeedsPharmacistFlow && normalizedStatus === 'STOCK'
+      : normalizedStatus === 'STOCK'
       ? 'PROCESSING'
       : normalizedStatus;
 
     const currentIndex = statusOrder.indexOf(effectiveStatus);
 
     const fullSteps = [
-      { id: 'PENDING_REVIEW', name: 'รอตรวจสอบ', icon: Clock },
-      { id: 'PRESCRIPTION', name: 'รอเภสัชกรอนุมัติใบสั่งยา', icon: FileText },
-      { id: 'STOCK', name: 'ตรวจสอบแล้ว', icon: CheckCircle2 },
+      { id: 'PRESCRIPTION', name: 'รอเภสัชตรวจสอบอนุมัติ', icon: FileText },
+      {
+        id: 'PENDING_REVIEW',
+        name: useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน',
+        icon: Clock,
+      },
       { id: 'PROCESSING', name: 'กำลังเตรียมสินค้า', icon: Package },
       { id: 'DONE', name: 'จัดส่งแล้ว', icon: Truck },
     ];
 
     const steps = orderNeedsPharmacistFlow
       ? fullSteps
-      : fullSteps.filter((step) => step.id !== 'PRESCRIPTION' && step.id !== 'STOCK');
+      : fullSteps.filter((step) => step.id !== 'PRESCRIPTION');
 
     return steps.map((step, index) => ({
       ...step,
@@ -812,9 +816,11 @@ export default function ProfilePage() {
                 <div className="mt-4 space-y-6">
                   {orders.map((order) => {
                     const orderNeedsPharmacistFlow = isMedicineOrMedicalDeviceOrder(order);
+                    const useReviewPendingLabel = isNonControlledOrder(order);
                     const trackingSteps = getOrderTrackingSteps(
                       order.status,
-                      orderNeedsPharmacistFlow
+                      orderNeedsPharmacistFlow,
+                      useReviewPendingLabel
                     );
 
                     return (
@@ -828,7 +834,11 @@ export default function ProfilePage() {
                               <h4 className="font-bold text-slate-900">
                                 คำสั่งซื้อ #{order.id.slice(0, 8).toUpperCase()}
                               </h4>
-                              {getStatusBadge(order.status, orderNeedsPharmacistFlow)}
+                              {getStatusBadge(
+                                order.status,
+                                orderNeedsPharmacistFlow,
+                                useReviewPendingLabel
+                              )}
                             </div>
                             <p className="mt-1 text-sm text-slate-500">
                               {new Date(order.createdAt).toLocaleDateString('th-TH', {

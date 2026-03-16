@@ -28,19 +28,8 @@ export class OrdersService {
     private isMedicineOrMedicalDeviceProduct(product: Product | undefined): boolean {
         if (!product) return false;
 
-        const categoryId = String(product.categoryId || '').toLowerCase();
-
-        return (
-            product.requiresPrescription ||
-            product.isControlled ||
-            categoryId === 'medical-device' ||
-            categoryId.includes('medicine') ||
-            categoryId.includes('drug') ||
-            categoryId.includes('pharma') ||
-            categoryId.includes('painkiller') ||
-            categoryId.includes('antibiotic') ||
-            categoryId.includes('chronic')
-        );
+        // Only controlled products require pharmacist approval.
+        return product.isControlled;
     }
 
     private requiresPharmacistFlow(products: Product[]): boolean {
