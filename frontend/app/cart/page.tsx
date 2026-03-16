@@ -33,6 +33,7 @@ function CartContent() {
 
     // Prescription upload states
     const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+    const [prescriptionPreview, setPrescriptionPreview] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +113,23 @@ function CartContent() {
         return item.product?.requiresPrescription || item.product?.isControlled;
     });
 
+    const setPrescriptionWithPreview = (file: File | null) => {
+        if (prescriptionPreview && prescriptionPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(prescriptionPreview);
+        }
+
+        setPrescriptionFile(file);
+        setPrescriptionPreview(file ? URL.createObjectURL(file) : null);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (prescriptionPreview && prescriptionPreview.startsWith('blob:')) {
+                URL.revokeObjectURL(prescriptionPreview);
+            }
+        };
+    }, [prescriptionPreview]);
+
     // File handlers
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -124,7 +142,7 @@ function CartContent() {
                 toast.error('ขนาดไฟล์เกิน 5MB');
                 return;
             }
-            setPrescriptionFile(file);
+            setPrescriptionWithPreview(file);
         }
     };
 
@@ -141,7 +159,7 @@ function CartContent() {
                 toast.error('ขนาดไฟล์เกิน 5MB');
                 return;
             }
-            setPrescriptionFile(file);
+            setPrescriptionWithPreview(file);
         }
     };
 
@@ -410,11 +428,25 @@ function CartContent() {
                                     {prescriptionFile && (
                                         <div className="mt-3 text-right">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setPrescriptionFile(null); }}
+                                                onClick={(e) => { e.stopPropagation(); setPrescriptionWithPreview(null); }}
                                                 className="text-xs font-semibold text-rose-500 hover:text-rose-600"
                                             >
                                                 ลบไฟล์ที่เลือก
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {prescriptionPreview && (
+                                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                            <p className="mb-2 text-xs font-semibold text-slate-600">ตัวอย่างรูปใบสั่งยา</p>
+                                            <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={prescriptionPreview}
+                                                    alt="prescription-preview"
+                                                    className="max-h-[320px] w-full object-contain"
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
