@@ -303,8 +303,8 @@ export default function ProfilePage() {
     };
 
     const labels: { [key: string]: string } = {
-      PENDING_REVIEW: useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน',
-      PRESCRIPTION: 'รอเภสัชตรวจสอบอนุมัติ',
+      PENDING_REVIEW: orderNeedsPharmacistFlow ? 'ชำระเงิน' : (useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน'),
+      PRESCRIPTION: 'รอเภสัชกรตรวจสอบและเพิ่มสินค้า',
       STOCK: 'กำลังเตรียมสินค้า / จัดส่ง',
       PROCESSING: 'กำลังเตรียมสินค้า / จัดส่ง',
       DONE: 'ส่งสำเร็จ',
@@ -344,10 +344,10 @@ export default function ProfilePage() {
     const currentIndex = statusOrder.indexOf(effectiveStatus);
 
     const fullSteps = [
-      { id: 'PRESCRIPTION', name: 'รอเภสัชตรวจสอบอนุมัติ', icon: FileText },
+      { id: 'PRESCRIPTION', name: 'รอเภสัชกรตรวจสอบและเพิ่มสินค้า', icon: FileText },
       {
         id: 'PENDING_REVIEW',
-        name: useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน',
+        name: orderNeedsPharmacistFlow ? 'ชำระเงิน' : (useReviewPendingLabel ? 'รอตรวจสอบ' : 'รอชำระเงิน'),
         icon: Clock,
       },
       { id: 'PROCESSING', name: 'กำลังเตรียมสินค้า', icon: Package },
