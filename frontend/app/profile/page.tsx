@@ -1013,7 +1013,7 @@ export default function ProfilePage() {
                               onClick={() => router.push(`/payment/${order.id}`)}
                               className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
                             >
-                              ดูรายละเอียด / ชำระเงิน
+                              ดูรายละเอียด
                             </button>
                           </div>
                         )}
