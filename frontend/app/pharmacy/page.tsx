@@ -32,8 +32,8 @@ import { toast } from "sonner";
 import { productService } from "@/app/services/productService";
 
 const statusLabel: Record<OrderStatus, string> = {
-  PENDING_REVIEW: "รอตรวจสอบ",
-  PRESCRIPTION: "รอตรวจสอบใบสั่งยา",
+  PENDING_REVIEW: "รอชำระเงิน",
+  PRESCRIPTION: "รอเภสัชตรวจสอบอนุมัติ",
   PROCESSING: "กำลังดำเนินการ",
   DONE: "ส่งมอบแล้ว",
   CANCELLED: "ยกเลิกแล้ว",
@@ -287,27 +287,27 @@ export default function PharmacyPage() {
         ) : (
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatCard
-              title="รอตรวจสอบ"
+              title="รอชำระเงิน"
               value={summary.pending}
               accent="from-amber-500 to-orange-500"
               icon={<ClipboardList className="h-6 w-6" />}
-              subtitle="คำสั่งซื้อที่ต้องตรวจ"
+              subtitle="คำสั่งซื้อที่รอชำระ"
               onView={() =>
                 setStatModal({
-                  title: "รอตรวจสอบ",
+                  title: "รอชำระเงิน",
                   value: summary.pending,
                 })
               }
             />
             <StatCard
-              title="รอตรวจใบสั่งยา"
+              title="รอเภสัชตรวจสอบอนุมัติ"
               value={summary.prescription}
               accent="from-indigo-500 to-purple-500"
               icon={<FileClock className="h-6 w-6" />}
-              subtitle="ต้องตรวจใบสั่งแพทย์"
+              subtitle="ต้องตรวจใบสั่งยาและอนุมัติ"
               onView={() =>
                 setStatModal({
-                  title: "รอตรวจใบสั่งยา",
+                  title: "รอเภสัชตรวจสอบอนุมัติ",
                   value: summary.prescription,
                 })
               }
@@ -434,7 +434,7 @@ export default function PharmacyPage() {
 
                   <p className="mt-1 text-sm text-slate-600">
                     {active === OrderStatus.PRESCRIPTION
-                      ? "คำสั่งซื้อที่รอตรวจสอบใบสั่งแพทย์ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
+                      ? "คำสั่งซื้อที่รอเภสัชตรวจสอบอนุมัติ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
                       : "คลิกปุ่มเพื่อจัดการคำสั่งซื้อ"}
                   </p>
                 </div>
@@ -1003,7 +1003,7 @@ function OrderCard({
                     className="rounded-xl border bg-slate-100 px-4 py-2 text-sm text-slate-600 shadow-sm transition-colors hover:bg-slate-200"
                     title="ต้องให้แอดมินตรวจสอบและยืนยันการชำระเงินก่อน"
                   >
-                    รอตรวจสอบชำระเงิน
+                    รอชำระเงิน
                   </button>
                 ) : (
                   <button
