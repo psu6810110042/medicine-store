@@ -21,6 +21,7 @@ import {
   ListFilter,
   ArrowUpDown,
   SlidersHorizontal,
+  Trash2,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,9 @@ const quickFilterLabel: Record<QuickFilter, string> = {
   highValue: "ยอดเกิน 500",
 };
 
+const HIDDEN_CANCELLED_KEY = "pharmacy_hidden_cancelled_order_ids";
+const HIDDEN_DELIVERED_KEY = "pharmacy_hidden_delivered_order_ids";
+
 function formatCurrencyShort(amount: number) {
   if (amount >= 1000000) {
     return `฿${(amount / 1000000).toFixed(2)}M`;
@@ -97,6 +101,27 @@ function formatCurrencyShort(amount: number) {
     return `฿${(amount / 1000).toFixed(1)}K`;
   }
   return `฿${amount.toLocaleString()}`;
+}
+
+function readHiddenIds(key: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHiddenIds(key: string, ids: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(key, JSON.stringify(ids));
+}
+
+function mergeUniqueIds(current: string[], next: string[]) {
+  return Array.from(new Set([...current, ...next]));
 }
 
 export default function PharmacyPage() {
@@ -111,11 +136,31 @@ export default function PharmacyPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const [clearingCancelled, setClearingCancelled] = useState(false);
+  const [clearingDelivered, setClearingDelivered] = useState(false);
+
+  const [hiddenCancelledIds, setHiddenCancelledIds] = useState<string[]>([]);
+  const [hiddenDeliveredIds, setHiddenDeliveredIds] = useState<string[]>([]);
 
   const [statModal, setStatModal] = useState<{
     title: string;
     value: string | number;
   } | null>(null);
+
+  const [imageModal, setImageModal] = useState<{
+    open: boolean;
+    title: string;
+    imageUrl: string;
+  }>({
+    open: false,
+    title: "",
+    imageUrl: "",
+  });
+
+  useEffect(() => {
+    setHiddenCancelledIds(readHiddenIds(HIDDEN_CANCELLED_KEY));
+    setHiddenDeliveredIds(readHiddenIds(HIDDEN_DELIVERED_KEY));
+  }, []);
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -126,7 +171,31 @@ export default function PharmacyPage() {
         productService.getProducts(),
       ]);
 
-      const sortedData = ordersData.sort(
+      const currentHiddenCancelledIds = readHiddenIds(HIDDEN_CANCELLED_KEY);
+      const currentHiddenDeliveredIds = readHiddenIds(HIDDEN_DELIVERED_KEY);
+
+      setHiddenCancelledIds(currentHiddenCancelledIds);
+      setHiddenDeliveredIds(currentHiddenDeliveredIds);
+
+      const visibleOrders = ordersData.filter((order) => {
+        if (
+          order.status === OrderStatus.CANCELLED &&
+          currentHiddenCancelledIds.includes(order.id)
+        ) {
+          return false;
+        }
+
+        if (
+          order.status === OrderStatus.DONE &&
+          currentHiddenDeliveredIds.includes(order.id)
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+      const sortedData = visibleOrders.sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrders(sortedData);
@@ -162,6 +231,27 @@ export default function PharmacyPage() {
     setSelected(null);
   };
 
+  const openImageModal = (imageUrl: string, title = "ดูภาพ") => {
+    setImageModal({
+      open: true,
+      title,
+      imageUrl,
+    });
+  };
+
+  const closeImageModal = () => {
+    setImageModal({
+      open: false,
+      title: "",
+      imageUrl: "",
+    });
+  };
+
+  const openImageInNewTab = (imageUrl: string) => {
+    if (!imageUrl) return;
+    window.open(imageUrl, "_blank", "noopener,noreferrer");
+  };
+
   const updateStatus = async (id: string, next: OrderStatus) => {
     try {
       const updated = await orderService.updateOrderStatus(id, next);
@@ -185,6 +275,72 @@ export default function PharmacyPage() {
     setSearchTerm("");
     setSortBy("newest");
     setQuickFilter("all");
+  };
+
+  const handleClearCancelledOrders = async () => {
+    const cancelledOrders = orders.filter((o) => o.status === OrderStatus.CANCELLED);
+
+    if (cancelledOrders.length === 0) {
+      toast.info("ไม่มีคำสั่งซื้อที่ยกเลิกแล้วให้ล้าง");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `ต้องการล้างคำสั่งซื้อที่ยกเลิกแล้วทั้งหมด ${cancelledOrders.length} รายการใช่หรือไม่?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setClearingCancelled(true);
+
+      const idsToHide = cancelledOrders.map((o) => o.id);
+      const mergedIds = mergeUniqueIds(hiddenCancelledIds, idsToHide);
+
+      writeHiddenIds(HIDDEN_CANCELLED_KEY, mergedIds);
+      setHiddenCancelledIds(mergedIds);
+
+      setOrders((prev) => prev.filter((o) => o.status !== OrderStatus.CANCELLED));
+
+      toast.success(`ล้างคำสั่งซื้อที่ยกเลิกแล้ว ${cancelledOrders.length} รายการเรียบร้อย`);
+    } catch (error) {
+      console.error("Failed to clear cancelled orders:", error);
+      toast.error("ไม่สามารถล้างคำสั่งซื้อที่ยกเลิกแล้วได้");
+    } finally {
+      setClearingCancelled(false);
+    }
+  };
+
+  const handleClearDeliveredOrders = async () => {
+    const deliveredOrders = orders.filter((o) => o.status === OrderStatus.DONE);
+
+    if (deliveredOrders.length === 0) {
+      toast.info("ไม่มีคำสั่งซื้อที่ส่งมอบแล้วให้ล้าง");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `ต้องการล้างคำสั่งซื้อที่ส่งมอบแล้วทั้งหมด ${deliveredOrders.length} รายการใช่หรือไม่?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setClearingDelivered(true);
+
+      const idsToHide = deliveredOrders.map((o) => o.id);
+      const mergedIds = mergeUniqueIds(hiddenDeliveredIds, idsToHide);
+
+      writeHiddenIds(HIDDEN_DELIVERED_KEY, mergedIds);
+      setHiddenDeliveredIds(mergedIds);
+
+      setOrders((prev) => prev.filter((o) => o.status !== OrderStatus.DONE));
+
+      toast.success(`ล้างคำสั่งซื้อที่ส่งมอบแล้ว ${deliveredOrders.length} รายการเรียบร้อย`);
+    } catch (error) {
+      console.error("Failed to clear delivered orders:", error);
+      toast.error("ไม่สามารถล้างคำสั่งซื้อที่ส่งมอบแล้วได้");
+    } finally {
+      setClearingDelivered(false);
+    }
   };
 
   const currentTabOrders = useMemo(() => {
@@ -435,6 +591,10 @@ export default function PharmacyPage() {
                   <p className="mt-1 text-sm text-slate-600">
                     {active === OrderStatus.PRESCRIPTION
                       ? "คำสั่งซื้อที่รอเภสัชตรวจสอบอนุมัติ — เภสัชกรต้องตรวจสอบใบสั่งยาและเพิ่มรายการยาให้ลูกค้า"
+                      : active === OrderStatus.CANCELLED
+                      ? "รายการคำสั่งซื้อที่ถูกยกเลิก — สามารถล้างรายการที่ยกเลิกแล้วเพื่อลดความรกได้"
+                      : active === OrderStatus.DONE
+                      ? "รายการคำสั่งซื้อที่ส่งมอบแล้ว — สามารถล้างรายการที่ส่งมอบแล้วเพื่อลดความรกได้"
                       : "คลิกปุ่มเพื่อจัดการคำสั่งซื้อ"}
                   </p>
                 </div>
@@ -497,6 +657,40 @@ export default function PharmacyPage() {
                   >
                     รีเซ็ตตัวกรอง
                   </button>
+
+                  {active === OrderStatus.CANCELLED && (
+                    <button
+                      type="button"
+                      onClick={handleClearCancelledOrders}
+                      disabled={clearingCancelled || summary.cancelled === 0}
+                      className={[
+                        "inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-gradient-to-b from-rose-50 to-white px-4 py-2.5 text-sm font-medium text-rose-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-rose-50",
+                        clearingCancelled || summary.cancelled === 0
+                          ? "cursor-not-allowed opacity-60"
+                          : "",
+                      ].join(" ")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {clearingCancelled ? "กำลังล้าง..." : "ล้างคำสั่งซื้อที่ยกเลิกแล้ว"}
+                    </button>
+                  )}
+
+                  {active === OrderStatus.DONE && (
+                    <button
+                      type="button"
+                      onClick={handleClearDeliveredOrders}
+                      disabled={clearingDelivered || summary.delivered === 0}
+                      className={[
+                        "inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white px-4 py-2.5 text-sm font-medium text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50",
+                        clearingDelivered || summary.delivered === 0
+                          ? "cursor-not-allowed opacity-60"
+                          : "",
+                      ].join(" ")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {clearingDelivered ? "กำลังล้าง..." : "ล้างคำสั่งซื้อที่ส่งมอบแล้ว"}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -614,6 +808,13 @@ export default function PharmacyPage() {
                       onCancel={() => {
                         updateStatus(order.id, OrderStatus.CANCELLED);
                       }}
+                      onViewImage={(url, mode) => {
+                        if (mode === "expanded") {
+                          openImageInNewTab(url);
+                        } else {
+                          openImageModal(url, "ใบสั่งยา");
+                        }
+                      }}
                     />
                   ))
                 )}
@@ -663,23 +864,23 @@ export default function PharmacyPage() {
                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-base font-bold text-slate-900">ใบสั่งแพทย์</CardTitle>
-                    <p className="text-sm text-slate-600">คลิกที่รูปเพื่อดูเต็ม</p>
+                    <p className="text-sm text-slate-600">คลิกที่รูปเพื่อเปิดแท็บใหม่แบบชัดเจน</p>
                   </div>
 
-                  <a
-                    href={selected.prescriptionImage}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openImageModal(selected.prescriptionImage!, "ใบสั่งยา")}
                     className="rounded-xl border bg-white px-3 py-2 text-sm transition hover:bg-slate-50"
                   >
-                    เปิดเต็ม (แท็บใหม่)
-                  </a>
+                    เปิดดูภาพ
+                  </button>
                 </CardHeader>
 
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <button
-                      onClick={() => window.open(selected.prescriptionImage!, "_blank")}
+                      type="button"
+                      onClick={() => openImageInNewTab(selected.prescriptionImage!)}
                       className="group overflow-hidden rounded-2xl border bg-slate-50 text-left transition hover:border-emerald-200 hover:bg-slate-100/80 lg:col-span-2"
                     >
                       <div className="relative aspect-[16/9] w-full">
@@ -691,7 +892,7 @@ export default function PharmacyPage() {
                         />
                       </div>
                       <div className="p-3 text-sm text-slate-600 group-hover:text-slate-800">
-                        คลิกเพื่อเปิดเต็ม
+                        คลิกเพื่อเปิดแท็บใหม่แบบขยาย
                       </div>
                     </button>
                   </div>
@@ -735,6 +936,13 @@ export default function PharmacyPage() {
         title={statModal?.title ?? ""}
         value={statModal?.value ?? ""}
         onClose={() => setStatModal(null)}
+      />
+
+      <ImagePreviewModal
+        open={imageModal.open}
+        title={imageModal.title}
+        imageUrl={imageModal.imageUrl}
+        onClose={closeImageModal}
       />
     </main>
   );
@@ -877,12 +1085,14 @@ function OrderCard({
   onReview,
   onApprove,
   onCancel,
+  onViewImage,
 }: {
   order: Order;
   onDetail: () => void;
   onReview: () => void;
   onApprove: () => void;
   onCancel: () => void;
+  onViewImage: (imageUrl: string, mode: "normal" | "expanded") => void;
 }) {
   const isFinished = order.status === OrderStatus.DONE || order.status === OrderStatus.CANCELLED;
 
@@ -946,23 +1156,26 @@ function OrderCard({
                 <div className="mt-4 rounded-2xl border bg-white p-3 transition-all duration-200 hover:border-emerald-200 hover:shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-bold text-slate-900">ใบสั่งแพทย์</p>
-                    <a
+                    <button
+                      type="button"
+                      onClick={() => onViewImage(order.prescriptionImage!, "normal")}
                       className="text-sm text-emerald-700 underline hover:text-emerald-800"
-                      href={order.prescriptionImage}
-                      target="_blank"
-                      rel="noreferrer"
                     >
-                      เปิดเต็ม
-                    </a>
+                      เปิดดูภาพ
+                    </button>
                   </div>
-                  <div className="relative mt-2 aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => onViewImage(order.prescriptionImage!, "expanded")}
+                    className="relative mt-2 block aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-50"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={order.prescriptionImage}
                       alt="prescription"
                       className="h-full w-full object-contain transition duration-300 hover:scale-[1.01]"
                     />
-                  </div>
+                  </button>
                 </div>
               ) : null}
             </CardContent>
@@ -1129,6 +1342,77 @@ function StatValueModal({
   );
 }
 
+function ImagePreviewModal({
+  open,
+  title,
+  imageUrl,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  imageUrl: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [open, onClose]);
+
+  if (!open || !imageUrl) return null;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute inset-0"
+        aria-label="close image preview"
+      />
+      <div className="relative w-full max-w-4xl rounded-[28px] border bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-slate-500">ดูภาพ</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border bg-white px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            ปิด
+          </button>
+        </div>
+
+        <div className="rounded-3xl border bg-slate-50 p-4">
+          <div className="flex max-h-[70vh] items-center justify-center overflow-auto rounded-2xl bg-white p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt={title}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              className="max-h-[62vh] w-auto max-w-full select-none rounded-2xl object-contain shadow-sm"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface PrescriptionDraftItem {
   product: Product;
   quantity: number;
@@ -1163,6 +1447,22 @@ function PrescriptionReviewCard({
   const [submitting, setSubmitting] = useState(false);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const doSearch = useCallback(
     async (q: string) => {
@@ -1199,22 +1499,6 @@ function PrescriptionReviewCard({
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
     };
   }, [query, doSearch]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
-        searchRef.current &&
-        !searchRef.current.contains(e.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const addProduct = (product: Product) => {
     setDraftItems((prev) => {
@@ -1275,223 +1559,213 @@ function PrescriptionReviewCard({
 
   const prescriptionUrl = order.prescriptionImage ?? null;
 
+  const openExpandedInNewTab = () => {
+    if (!prescriptionUrl) return;
+    window.open(prescriptionUrl, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <Card className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg">
-      <CardHeader className="border-b bg-gradient-to-r from-violet-50 to-indigo-50">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
-            ใบสั่งยา
-          </span>
-          <p className="max-w-xs truncate font-mono text-xs text-slate-500">{order.id}</p>
-        </div>
-
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-slate-600">
-            ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
-          </p>
-          <StatusBadge status={order.status} />
-        </div>
-
-        <p className="text-xs text-slate-400">
-          {new Date(order.createdAt).toLocaleString("th-TH", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </p>
-      </CardHeader>
-
-      <CardContent className="p-0">
-        <div className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
-          <div className="flex shrink-0 flex-col items-center gap-3 bg-slate-50 p-4 transition-colors group-hover:bg-violet-50/40 md:w-52">
-            <p className="self-start text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <>
+      <Card className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg">
+        <CardHeader className="border-b bg-gradient-to-r from-violet-50 to-indigo-50">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
               ใบสั่งยา
-            </p>
-
-            {prescriptionUrl ? (
-              <button
-                type="button"
-                onClick={() => setImageOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-violet-700 transition-colors hover:bg-violet-50"
-              >
-                <Eye className="h-4 w-4" />
-                ดูใบสั่งยา
-              </button>
-            ) : (
-              <div className="flex h-36 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
-                ไม่มีรูปใบสั่งยา
-              </div>
-            )}
-
-            {prescriptionUrl && (
-              <button
-                type="button"
-                onClick={() => setImageOpen(true)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs text-violet-700 transition-colors hover:bg-violet-50"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                ดูเต็มจอ
-              </button>
-            )}
+            </span>
+            <p className="max-w-xs truncate font-mono text-xs text-slate-500">{order.id}</p>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-4 p-5">
-            <div>
-              <p className="mb-1.5 text-sm font-semibold text-slate-700">เพิ่มรายการยา</p>
-              <div className="relative">
-                <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2 transition-colors hover:border-violet-200 hover:bg-white">
-                  <Search className="h-4 w-4 shrink-0 text-slate-400" />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    placeholder="ค้นหาชื่อยา..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => results.length > 0 && setShowDropdown(true)}
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-                  />
-                  {searching && (
-                    <span className="animate-pulse text-xs text-slate-400">กำลังค้นหา...</span>
-                  )}
-                </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-600">
+              ลูกค้า: <span className="font-semibold text-slate-800">{order.user?.email ?? "—"}</span>
+            </p>
+            <StatusBadge status={order.status} />
+          </div>
 
-                {showDropdown && results.length > 0 && (
-                  <div
-                    ref={dropdownRef}
-                    className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border bg-white shadow-xl"
-                    style={{ scrollbarWidth: "none" }}
+          <p className="text-xs text-slate-400">
+            {new Date(order.createdAt).toLocaleString("th-TH", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </p>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <div className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
+            <div className="flex shrink-0 flex-col items-center gap-3 bg-slate-50 p-4 transition-colors group-hover:bg-violet-50/40 md:w-52">
+              <p className="self-start text-xs font-semibold uppercase tracking-wide text-slate-400">
+                ใบสั่งยา
+              </p>
+
+              {prescriptionUrl ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setImageOpen(true)}
+                    className="flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-violet-700 transition-colors hover:bg-violet-50"
                   >
-                    {results.map((product) => (
-                      <button
-                        key={product.id}
-                        type="button"
-                        onClick={() => addProduct(product)}
-                        className="flex w-full items-center justify-between gap-3 border-b px-4 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-violet-50"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-800">{product.name}</p>
-                          <p className="text-xs text-slate-400">คงเหลือ: {product.stockQuantity}</p>
-                        </div>
-                        <span className="shrink-0 text-xs font-semibold text-emerald-600">
-                          ฿{Number(product.price).toLocaleString()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                    <Eye className="h-4 w-4" />
+                    ดูใบสั่งยา
+                  </button>
 
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-700">รายการยาที่เลือก</p>
-                {draftItems.length > 0 && (
-                  <span className="text-xs font-bold text-slate-700">รวม ฿{total.toLocaleString()}</span>
-                )}
-              </div>
-
-              {draftItems.length === 0 ? (
-                <p className="rounded-xl border border-dashed py-4 text-center text-xs italic text-slate-400">
-                  ยังไม่มีรายการ — ค้นหาและเพิ่มยาด้านบน
-                </p>
+                  <button
+                    type="button"
+                    onClick={openExpandedInNewTab}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    ดูแบบขยาย
+                  </button>
+                </>
               ) : (
-                <div className="space-y-2">
-                  {draftItems.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2.5 transition-colors hover:border-violet-200 hover:bg-violet-50/40"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-800">
-                          {item.product.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          ฿{Number(item.product.price).toLocaleString()} × {item.quantity} ={" "}
-                          <span className="font-semibold text-slate-700">
-                            ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => changeQty(item.product.id, -1)}
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-red-50"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => changeQty(item.product.id, 1)}
-                          disabled={item.quantity >= (item.product.stockQuantity ?? 999)}
-                          className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-emerald-50 disabled:opacity-40"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.product.id)}
-                        className="shrink-0 text-slate-300 transition-colors hover:text-red-400"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex h-36 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
+                  ไม่มีรูปใบสั่งยา
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t pt-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={submitting}
-                className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-              >
-                <XCircle className="h-3.5 w-3.5" />
-                ยกเลิกคำสั่งซื้อ
-              </button>
+            <div className="min-w-0 flex-1 space-y-4 p-5">
+              <div>
+                <p className="mb-1.5 text-sm font-semibold text-slate-700">เพิ่มรายการยา</p>
+                <div className="relative">
+                  <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2 transition-colors hover:border-violet-200 hover:bg-white">
+                    <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      placeholder="ค้นหาชื่อยา..."
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onFocus={() => results.length > 0 && setShowDropdown(true)}
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                    />
+                    {searching && (
+                      <span className="animate-pulse text-xs text-slate-400">กำลังค้นหา...</span>
+                    )}
+                  </div>
 
-              <button
-                type="button"
-                onClick={handleSaveAndApprove}
-                disabled={submitting || draftItems.length === 0}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-              >
-                <CheckCircle className="h-3.5 w-3.5" />
-                {submitting ? "กำลังบันทึก..." : "อนุมัติและส่งคำสั่งซื้อ"}
-              </button>
+                  {showDropdown && results.length > 0 && (
+                    <div
+                      ref={dropdownRef}
+                      className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border bg-white shadow-xl"
+                      style={{ scrollbarWidth: "none" }}
+                    >
+                      {results.map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => addProduct(product)}
+                          className="flex w-full items-center justify-between gap-3 border-b px-4 py-2.5 text-left text-sm transition-colors last:border-0 hover:bg-violet-50"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-800">{product.name}</p>
+                            <p className="text-xs text-slate-400">คงเหลือ: {product.stockQuantity}</p>
+                          </div>
+                          <span className="shrink-0 text-xs font-semibold text-emerald-600">
+                            ฿{Number(product.price).toLocaleString()}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700">รายการยาที่เลือก</p>
+                  {draftItems.length > 0 && (
+                    <span className="text-xs font-bold text-slate-700">รวม ฿{total.toLocaleString()}</span>
+                  )}
+                </div>
+
+                {draftItems.length === 0 ? (
+                  <p className="rounded-xl border border-dashed py-4 text-center text-xs italic text-slate-400">
+                    ยังไม่มีรายการ — ค้นหาและเพิ่มยาด้านบน
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {draftItems.map((item) => (
+                      <div
+                        key={item.product.id}
+                        className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2.5 transition-colors hover:border-violet-200 hover:bg-violet-50/40"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-slate-800">
+                            {item.product.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            ฿{Number(item.product.price).toLocaleString()} × {item.quantity} ={" "}
+                            <span className="font-semibold text-slate-700">
+                              ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => changeQty(item.product.id, -1)}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-red-50"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => changeQty(item.product.id, 1)}
+                            disabled={item.quantity >= (item.product.stockQuantity ?? 999)}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border bg-white text-slate-600 transition hover:bg-emerald-50 disabled:opacity-40"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.product.id)}
+                          className="shrink-0 text-slate-300 transition-colors hover:text-red-400"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t pt-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  ยกเลิกคำสั่งซื้อ
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveAndApprove}
+                  disabled={submitting || draftItems.length === 0}
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  {submitting ? "กำลังบันทึก..." : "อนุมัติและส่งคำสั่งซื้อ"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
+        </CardContent>
+      </Card>
 
-      {imageOpen && prescriptionUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setImageOpen(false)}
-        >
-          <div className="relative w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setImageOpen(false)}
-              className="absolute -right-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow hover:bg-slate-100"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={prescriptionUrl}
-              alt="ใบสั่งยา"
-              className="max-h-[80vh] w-full rounded-2xl object-contain shadow-2xl"
-            />
-          </div>
-        </div>
-      )}
-    </Card>
+      <ImagePreviewModal
+        open={imageOpen}
+        title="ใบสั่งยา"
+        imageUrl={prescriptionUrl ?? ""}
+        onClose={() => setImageOpen(false)}
+      />
+    </>
   );
 }
