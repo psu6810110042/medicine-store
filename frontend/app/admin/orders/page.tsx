@@ -14,6 +14,13 @@ import {
 } from "lucide-react";
 import { orderService } from "../../services/orderService";
 import { Order } from "../../types/order";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 function RejectModal({
     order,
@@ -113,6 +120,7 @@ export default function AdminOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<Order | null>(null);
+    const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
 
     const fetchOrders = async (silent = false) => {
         try {
@@ -121,20 +129,11 @@ export default function AdminOrdersPage() {
 
             const data = await orderService.getOrders();
 
-            const pendingVerify = data
-                .filter(
-                    (o) =>
-                        o.paymentStatus === "PENDING_REVIEW" ||
-                        (o.paymentSlipUrl &&
-                            o.paymentStatus !== "APPROVED" &&
-                            o.paymentStatus !== "REJECTED")
-                )
-                .sort(
-                    (a, b) =>
-                        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                );
+            const paymentRelatedOrders = data.filter(
+                (o) => Boolean(o.paymentMethod || o.paymentStatus || o.paymentSlipUrl)
+            );
 
-            setOrders(pendingVerify);
+            setOrders(paymentRelatedOrders);
         } catch (error) {
             console.error("Failed to load orders:", error);
             toast.error("ดึงข้อมูลรายการสั่งซื้อล้มเหลว");
@@ -147,6 +146,13 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         fetchOrders();
     }, []);
+
+    const filteredOrders = orders
+        .sort((a, b) => {
+            const aTime = new Date(a.createdAt).getTime();
+            const bTime = new Date(b.createdAt).getTime();
+            return sortOrder === "latest" ? bTime - aTime : aTime - bTime;
+        });
 
     const handleApprove = async (orderId: string) => {
         try {
@@ -195,29 +201,45 @@ export default function AdminOrdersPage() {
                                 ตรวจสอบการชำระเงิน
                             </h1>
                             <p className="text-slate-600 mt-1">
-                                รายการโอนเงินที่รอให้แอดมินยืนยันสลิป ({orders.length} รายการ)
+                                รายการตรวจสอบการชำระเงิน ({filteredOrders.length} รายการ)
                             </p>
                         </div>
-                        <button
-                            onClick={() => fetchOrders(true)}
-                            disabled={refreshing}
-                            className="flex items-center gap-2 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-60"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-                            รีเฟรช
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Select
+                                value={sortOrder}
+                                onValueChange={(value) => setSortOrder(value as "latest" | "oldest")}
+                            >
+                                <SelectTrigger className="w-[180px] rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm focus-visible:ring-sky-200">
+                                    <SelectValue placeholder="เลือกการเรียง" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="latest">เรียงล่าสุด</SelectItem>
+                                    <SelectItem value="oldest">เรียงเก่าสุด</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <button
+                                onClick={() => fetchOrders(true)}
+                                disabled={refreshing}
+                                className="flex items-center gap-2 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-60"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                                รีเฟรช
+                            </button>
+                        </div>
                     </div>
 
-                    {orders.length === 0 ? (
+                    {filteredOrders.length === 0 ? (
                         <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm mt-8">
                             <CheckCircle className="mx-auto h-12 w-12 text-emerald-500 mb-4 opacity-80" />
-                            <h3 className="text-xl font-bold text-slate-800">ไม่มีรายการรอตรวจสอบ</h3>
-                            <p className="text-slate-500 mt-2">สลิปทั้งหมดได้รับการยืนยันเรียบร้อยแล้ว</p>
+                            <h3 className="text-xl font-bold text-slate-800">ไม่พบรายการชำระเงิน</h3>
+                            <p className="text-slate-500 mt-2">ยังไม่มีรายการที่เกี่ยวข้องกับการชำระเงินในระบบ</p>
                         </div>
                     ) : (
                         <div className="grid gap-6">
-                            {orders.map((order) => {
+                            {filteredOrders.map((order) => {
                                 const hasSlip = Boolean(order.paymentSlipUrl);
+                                const isApproved = order.paymentStatus === "APPROVED";
                                 return (
                                     <div
                                         key={order.id}
@@ -279,6 +301,11 @@ export default function AdminOrdersPage() {
                                                                 <AlertTriangle className="w-3 h-3" /> ไม่มีสลิป
                                                             </span>
                                                         )}
+                                                        {isApproved && (
+                                                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                                                                <CheckCircle className="w-3 h-3" /> ยืนยันแล้ว
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="sm:text-right bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100 self-start sm:self-auto shrink-0">
@@ -330,24 +357,32 @@ export default function AdminOrdersPage() {
 
                                             {/* ── Action buttons ── */}
                                             <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-4 border-t border-slate-100">
-                                                {/* Reject — opens modal for optional note */}
-                                                <button
-                                                    onClick={() => setRejectTarget(order)}
-                                                    className="flex items-center justify-center gap-2 rounded-xl bg-white border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors focus:ring-2 focus:ring-rose-200 outline-none"
-                                                >
-                                                    <XCircle className="w-4 h-4" /> ปฏิเสธสลิป
-                                                </button>
+                                                {isApproved ? (
+                                                    <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 text-center">
+                                                        รายการนี้ยืนยันการชำระเงินแล้ว
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        {/* Reject — opens modal for optional note */}
+                                                        <button
+                                                            onClick={() => setRejectTarget(order)}
+                                                            className="flex items-center justify-center gap-2 rounded-xl bg-white border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors focus:ring-2 focus:ring-rose-200 outline-none"
+                                                        >
+                                                            <XCircle className="w-4 h-4" /> ปฏิเสธสลิป
+                                                        </button>
 
-                                                {/* Approve — only when slip is present */}
-                                                <button
-                                                    onClick={() => handleApprove(order.id)}
-                                                    disabled={!hasSlip}
-                                                    title={!hasSlip ? "ลูกค้ายังไม่ได้แนบสลิป" : undefined}
-                                                    className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md sm:ml-auto"
-                                                >
-                                                    <CheckCircle className="w-4 h-4" />
-                                                    {hasSlip ? "ยืนยันสลิปถูกต้อง" : "รอสลิปจากลูกค้า"}
-                                                </button>
+                                                        {/* Approve — only when slip is present */}
+                                                        <button
+                                                            onClick={() => handleApprove(order.id)}
+                                                            disabled={!hasSlip}
+                                                            title={!hasSlip ? "ลูกค้ายังไม่ได้แนบสลิป" : undefined}
+                                                            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 outline-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md sm:ml-auto"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            {hasSlip ? "ยืนยันสลิปถูกต้อง" : "รอสลิปจากลูกค้า"}
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
