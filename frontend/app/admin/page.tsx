@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
+import { userService } from '../services/userService';
 import { Product, Category } from '../types/product';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
 import { Package, AlertCircle, ShieldAlert, TrendingUp, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Image from 'next/image';
@@ -16,6 +19,13 @@ export default function AdminDashboardPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [creatingPharmacist, setCreatingPharmacist] = useState(false);
+    const [pharmacistForm, setPharmacistForm] = useState({
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        password: '',
+    });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -95,6 +105,32 @@ export default function AdminDashboardPage() {
             return expiryDate > today && expiryDate <= thirtyDaysLater;
         }).length;
     }, [products]);
+
+    const handleCreatePharmacist = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!pharmacistForm.fullName || !pharmacistForm.email || !pharmacistForm.phoneNumber || !pharmacistForm.password) {
+            toast.error('กรุณากรอกข้อมูลเภสัชกรให้ครบถ้วน');
+            return;
+        }
+
+        setCreatingPharmacist(true);
+        try {
+            await userService.createPharmacist(pharmacistForm);
+            toast.success('สร้างบัญชีเภสัชกรเรียบร้อยแล้ว');
+            setPharmacistForm({
+                fullName: '',
+                email: '',
+                phoneNumber: '',
+                password: '',
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'ไม่สามารถสร้างบัญชีเภสัชกรได้';
+            toast.error(message);
+        } finally {
+            setCreatingPharmacist(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -230,6 +266,52 @@ export default function AdminDashboardPage() {
                         <ArrowRight className="h-5 w-5 text-indigo-500 shrink-0" />
                     </div>
                 </Link>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>สร้างบัญชีเภสัชกร</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleCreatePharmacist} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Input
+                                placeholder="ชื่อ-สกุล"
+                                value={pharmacistForm.fullName}
+                                onChange={(e) =>
+                                    setPharmacistForm((prev) => ({ ...prev, fullName: e.target.value }))
+                                }
+                            />
+                            <Input
+                                type="email"
+                                placeholder="อีเมล"
+                                value={pharmacistForm.email}
+                                onChange={(e) =>
+                                    setPharmacistForm((prev) => ({ ...prev, email: e.target.value }))
+                                }
+                            />
+                            <Input
+                                placeholder="เบอร์โทรศัพท์"
+                                value={pharmacistForm.phoneNumber}
+                                onChange={(e) =>
+                                    setPharmacistForm((prev) => ({ ...prev, phoneNumber: e.target.value }))
+                                }
+                            />
+                            <Input
+                                type="password"
+                                placeholder="รหัสผ่าน"
+                                value={pharmacistForm.password}
+                                onChange={(e) =>
+                                    setPharmacistForm((prev) => ({ ...prev, password: e.target.value }))
+                                }
+                            />
+                            <div className="md:col-span-2 flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                                <p className="text-sm text-slate-600">สร้างบัญชี role เภสัชกรโดยตรงจากหน้าแอดมิน</p>
+                                <Button type="submit" disabled={creatingPharmacist}>
+                                    {creatingPharmacist ? 'กำลังสร้าง...' : 'สร้างเภสัชกร'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
 
                 {/* Charts & Lists Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
