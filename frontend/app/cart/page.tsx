@@ -223,9 +223,15 @@ function CartContent() {
                 });
             }
 
-            // ไปหน้าประวัติคำสั่งซื้อทุกกรณีหลังสั่งซื้อสำเร็จ
-            toast.success('สั่งซื้อสำเร็จ! สามารถตรวจสอบสถานะได้ที่ประวัติคำสั่งซื้อ');
-            router.push('/profile?tab=orders');
+            if (requiresPrescription) {
+                // ยาควบคุม: ต้องรอเภสัชกรอนุมัติก่อน ไปดูสถานะที่ประวัติคำสั่งซื้อ
+                toast.success('ส่งคำสั่งซื้อสำเร็จ! เภสัชกรจะตรวจสอบใบสั่งยาของคุณ');
+                router.push('/profile?tab=orders');
+            } else {
+                // ยาทั่วไป: ไปชำระเงินได้เลย
+                toast.success('สั่งซื้อสำเร็จ!');
+                router.push(`/payment/${createdOrder.id}`);
+            }
         } catch (error) {
             console.error('Checkout failed:', error);
             toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง');

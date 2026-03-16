@@ -185,7 +185,7 @@ export default function PaymentPage() {
             });
             showToast("ส่งหลักฐานเรียบร้อย ✅ รอร้านตรวจสอบ");
             setTimeout(() => {
-                router.push("/profile");
+                router.push("/profile?tab=orders");
             }, 1500);
         } catch (e: unknown) {
             console.error(e);
@@ -216,6 +216,9 @@ export default function PaymentPage() {
 
     const isPromptPay = order?.payment?.method === "PROMPTPAY";
     const amount = (order?.total ?? itemsTotal).toLocaleString();
+
+    // ถ้าชำระเงินไปแล้ว (ส่งสลิปแล้ว/อนุมัติแล้ว) ให้แสดงแบบ read-only
+    const isAlreadyPaid = order?.payment?.status === "PENDING_REVIEW" || order?.payment?.status === "APPROVED";
 
     if (isFetching) {
         return (
@@ -305,8 +308,12 @@ export default function PaymentPage() {
                                 <p className="text-sm font-bold text-slate-900">หมายเหตุถึงร้าน (ถ้ามี)</p>
                                 <textarea
                                     value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    className="mt-2 w-full rounded-2xl border bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                                    onChange={(e) => !isAlreadyPaid && setNote(e.target.value)}
+                                    readOnly={isAlreadyPaid}
+                                    className={[
+                                        "mt-2 w-full rounded-2xl border bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200",
+                                        isAlreadyPaid ? "cursor-default text-slate-500" : "",
+                                    ].join(" ")}
                                     placeholder="เช่น โอนจากชื่อบัญชี..., โอนแล้วเวลา..., ฝากตรวจสอบ..."
                                     rows={4}
                                 />
@@ -317,16 +324,22 @@ export default function PaymentPage() {
                     {/* Right */}
                     <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
                         <div className="p-5 border-b">
-                            <h2 className="text-lg font-bold text-slate-900">ข้อมูลการโอน</h2>
-                            <p className="text-sm text-slate-600 mt-1">เลือกวิธีและอัปโหลดสลิป</p>
+                            <h2 className="text-lg font-bold text-slate-900">
+                                {isAlreadyPaid ? 'รายละเอียดการชำระเงิน' : 'ข้อมูลการโอน'}
+                            </h2>
+                            <p className="text-sm text-slate-600 mt-1">
+                                {isAlreadyPaid ? 'ชำระเงินเรียบร้อยแล้ว — ดูได้อย่างเดียว' : 'เลือกวิธีและอัปโหลดสลิป'}
+                            </p>
                         </div>
 
                         <div className="p-5 space-y-4">
+                            {/* วิธีชำระเงิน — read-only เมื่อชำระแล้ว */}
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
+                                    disabled={isAlreadyPaid}
                                     onClick={() =>
-                                        setOrder((prev) => prev ? ({
+                                        !isAlreadyPaid && setOrder((prev) => prev ? ({
                                             ...prev,
                                             payment: {
                                                 ...(prev.payment ?? { status: "UNPAID" as const }),
@@ -338,15 +351,17 @@ export default function PaymentPage() {
                                         "rounded-2xl border px-3 py-3 text-sm font-semibold transition",
                                         order.payment?.method === "BANK_TRANSFER"
                                             ? "bg-emerald-600 text-white border-emerald-600"
-                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50",
+                                            : "bg-white text-slate-700 border-slate-200",
+                                        isAlreadyPaid ? "cursor-default opacity-80" : "hover:bg-slate-50",
                                     ].join(" ")}
                                 >
                                     โอนธนาคาร
                                 </button>
                                 <button
                                     type="button"
+                                    disabled={isAlreadyPaid}
                                     onClick={() =>
-                                        setOrder((prev) => prev ? ({
+                                        !isAlreadyPaid && setOrder((prev) => prev ? ({
                                             ...prev,
                                             payment: {
                                                 ...(prev.payment ?? { status: "UNPAID" as const }),
@@ -358,7 +373,8 @@ export default function PaymentPage() {
                                         "rounded-2xl border px-3 py-3 text-sm font-semibold transition",
                                         isPromptPay
                                             ? "bg-emerald-600 text-white border-emerald-600"
-                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50",
+                                            : "bg-white text-slate-700 border-slate-200",
+                                        isAlreadyPaid ? "cursor-default opacity-80" : "hover:bg-slate-50",
                                     ].join(" ")}
                                 >
                                     พร้อมเพย์
@@ -440,26 +456,31 @@ export default function PaymentPage() {
                             </div>
 
                             <div className="rounded-2xl border bg-white p-4">
-                                <p className="text-sm font-bold text-slate-900">อัปโหลดสลิป</p>
-                                <p className="text-xs text-slate-500 mt-1">รองรับ .jpg/.png</p>
+                                <p className="text-sm font-bold text-slate-900">
+                                    {isAlreadyPaid ? 'สลิปที่อัปโหลด' : 'อัปโหลดสลิป'}
+                                </p>
+                                {!isAlreadyPaid && (
+                                    <p className="text-xs text-slate-500 mt-1">รองรับ .jpg/.png</p>
+                                )}
 
-                                <label className="mt-3 block rounded-2xl border border-dashed bg-slate-50 p-4 cursor-pointer hover:bg-slate-100 transition">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => onPickSlip(e.target.files?.[0] ?? null)}
-                                    />
-                                    <div className="text-sm text-slate-700">
-                                        คลิกเพื่อเลือกไฟล์สลิป
-                                        <div className="text-xs text-slate-500 mt-1">(เลือกแล้วจะมีภาพ preview)</div>
-                                    </div>
-                                </label>
+                                {!isAlreadyPaid && (
+                                    <label className="mt-3 block rounded-2xl border border-dashed bg-slate-50 p-4 cursor-pointer hover:bg-slate-100 transition">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => onPickSlip(e.target.files?.[0] ?? null)}
+                                        />
+                                        <div className="text-sm text-slate-700">
+                                            คลิกเพื่อเลือกไฟล์สลิป
+                                            <div className="text-xs text-slate-500 mt-1">(เลือกแล้วจะมีภาพ preview)</div>
+                                        </div>
+                                    </label>
+                                )}
 
                                 {slipPreview ? (
                                     <div className="mt-4 rounded-2xl border bg-slate-50 overflow-hidden">
                                         <div className="w-full aspect-[4/5] bg-white flex items-center justify-center">
-                                            {/* ใช้ img รองรับ blob: ชัวร์กว่า next/image */}
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={slipPreview}
@@ -467,39 +488,51 @@ export default function PaymentPage() {
                                                 className="max-h-full max-w-full object-contain"
                                             />
                                         </div>
-                                        <div className="p-3 flex items-center justify-between">
-                                            <p className="text-xs text-slate-600 truncate">
-                                                {slipFile?.name ?? "slip-preview"}
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (slipPreview && slipPreview.startsWith("blob:")) {
-                                                        URL.revokeObjectURL(slipPreview);
-                                                    }
-                                                    setSlipFile(null);
-                                                    setSlipPreview(null);
-                                                }}
-                                                className="text-xs rounded-xl border bg-white px-2 py-1 hover:bg-slate-50"
-                                            >
-                                                ลบ
-                                            </button>
-                                        </div>
+                                        {!isAlreadyPaid && (
+                                            <div className="p-3 flex items-center justify-between">
+                                                <p className="text-xs text-slate-600 truncate">
+                                                    {slipFile?.name ?? "slip-preview"}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (slipPreview && slipPreview.startsWith("blob:")) {
+                                                            URL.revokeObjectURL(slipPreview);
+                                                        }
+                                                        setSlipFile(null);
+                                                        setSlipPreview(null);
+                                                    }}
+                                                    className="text-xs rounded-xl border bg-white px-2 py-1 hover:bg-slate-50"
+                                                >
+                                                    ลบ
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
+                                ) : isAlreadyPaid ? (
+                                    <p className="mt-3 text-sm text-slate-500 italic">ไม่มีสลิปที่อัปโหลด</p>
                                 ) : null}
                             </div>
 
-                            <button
-                                type="button"
-                                disabled={!canSubmit}
-                                onClick={submitPayment}
-                                className={[
-                                    "w-full rounded-2xl px-4 py-3 text-sm font-bold text-white transition",
-                                    canSubmit ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-300 cursor-not-allowed",
-                                ].join(" ")}
-                            >
-                                {submitting ? "กำลังส่ง..." : "ยืนยันการชำระเงิน"}
-                            </button>
+                            {!isAlreadyPaid && (
+                                <button
+                                    type="button"
+                                    disabled={!canSubmit}
+                                    onClick={submitPayment}
+                                    className={[
+                                        "w-full rounded-2xl px-4 py-3 text-sm font-bold text-white transition",
+                                        canSubmit ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-300 cursor-not-allowed",
+                                    ].join(" ")}
+                                >
+                                    {submitting ? "กำลังส่ง..." : "ยืนยันการชำระเงิน"}
+                                </button>
+                            )}
+
+                            {isAlreadyPaid && (
+                                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 font-medium text-center">
+                                    ✅ ส่งหลักฐานการชำระเงินแล้ว — รอร้านตรวจสอบ
+                                </div>
+                            )}
 
                             <button
                                 type="button"
