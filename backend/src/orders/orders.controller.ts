@@ -18,6 +18,8 @@ import { AddItemsToOrderDto } from './dto/add-items-to-order.dto';
 import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
 import { User, UserRole } from '../users/entities/user.entity';
 import { PaymentStatus } from './entities/order.entity';
+import { RequestOutOfStockDecisionDto } from './dto/request-out-of-stock-decision.dto';
+import { RespondOutOfStockDecisionDto } from './dto/respond-out-of-stock-decision.dto';
 
 @Controller('orders')
 @UseGuards(AuthenticatedGuard)
@@ -115,6 +117,36 @@ export class OrdersController {
     }
 
     return this.ordersService.verifyPayment(id, user.id, body);
+  }
+
+  @Patch(':id/request-decision')
+  async requestOutOfStockDecision(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: RequestOutOfStockDecisionDto,
+  ) {
+    const user = req.user as User;
+
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.PHARMACIST) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.ordersService.requestOutOfStockDecision(id, body);
+  }
+
+  @Patch(':id/respond-decision')
+  async respondOutOfStockDecision(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: RespondOutOfStockDecisionDto,
+  ) {
+    const user = req.user as User;
+
+    if (user.role !== UserRole.CUSTOMER) {
+      throw new ForbiddenException('Only customer can respond');
+    }
+
+    return this.ordersService.respondOutOfStockDecision(id, user.id, body);
   }
 
   @Delete(':id')

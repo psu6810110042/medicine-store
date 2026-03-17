@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Menu, User } from 'lucide-react';
+import { UserCircle, Package, ShoppingCart, Minus, Plus, Trash2, Zap, LogOut, X, Menu, User, Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
@@ -11,6 +11,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { productService } from '@/app/services/productService';
 import { Product } from '@/app/types/product';
+import { orderService } from '@/app/services/orderService';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navbar() {
@@ -21,6 +22,7 @@ export default function Navbar() {
   const [cartProducts, setCartProducts] = useState<Product[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [pendingNotifications, setPendingNotifications] = useState(0);
 
   // Form states
   const [email, setEmail] = useState("");
@@ -29,6 +31,24 @@ export default function Navbar() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    if (!user || user.role !== 'customer') return;
+    const loadNotifications = async () => {
+      try {
+        const orders = await orderService.getMyOrders();
+        const count = orders.filter(
+          (o) => o.pharmacistActionRequired && o.customerDecisionStatus === 'PENDING'
+        ).length;
+        setPendingNotifications(count);
+      } catch {
+        // silent fail
+      }
+    };
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     const loadCartProducts = async () => {
@@ -157,6 +177,20 @@ export default function Navbar() {
                   className="hidden md:block text-sm font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full transition-colors"
                 >
                   {user.role === 'admin' ? '🔐 ระบบผู้ดูแล' : 'จัดการคำสั่งซื้อ'}
+                </Link>
+              )}
+
+              {/* Notification Bell (customers only) */}
+              {user && user.role === 'customer' && (
+                <Link href="/profile?tab=notifications">
+                  <Button variant="ghost" size="icon" className="relative text-gray-700 hover:text-primary hover:bg-primary/5 transition-colors">
+                    <Bell className="w-5 h-5" />
+                    {pendingNotifications > 0 && (
+                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] animate-in zoom-in border-2 border-white">
+                        {pendingNotifications}
+                      </Badge>
+                    )}
+                  </Button>
                 </Link>
               )}
 

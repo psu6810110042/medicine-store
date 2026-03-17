@@ -1439,6 +1439,8 @@ function PrescriptionReviewCard({
 
   const [imageOpen, setImageOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [decisionMessage, setDecisionMessage] = useState(order.pharmacistNotes ?? "");
+  const [sendingDecisionRequest, setSendingDecisionRequest] = useState(false);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1555,6 +1557,26 @@ function PrescriptionReviewCard({
 
   const handleCancel = async () => {
     await onStatusChange(order.id, OrderStatus.CANCELLED);
+  };
+
+  const handleRequestCustomerDecision = async () => {
+    const message = decisionMessage.trim();
+    if (!message) {
+      toast.error("กรุณากรอกข้อความแจ้งลูกค้า");
+      return;
+    }
+
+    setSendingDecisionRequest(true);
+    try {
+      const updated = await orderService.requestOutOfStockDecision(order.id, message);
+      onOrderUpdated(updated);
+      toast.success("ส่งข้อความถามลูกค้าเรียบร้อย");
+    } catch (err: unknown) {
+      const messageText = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
+      toast.error(`ส่งข้อความไม่สำเร็จ: ${messageText}`);
+    } finally {
+      setSendingDecisionRequest(false);
+    }
   };
 
   const prescriptionUrl = order.prescriptionImage ?? null;
@@ -1735,6 +1757,27 @@ function PrescriptionReviewCard({
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t pt-2">
+                <div className="mr-auto w-full max-w-md space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-600">กรณียาหมด: ส่งข้อความถามลูกค้า</p>
+                  <textarea
+                    value={decisionMessage}
+                    onChange={(e) => setDecisionMessage(e.target.value)}
+                    placeholder="เช่น ยา A หมด ต้องการให้จัดออเดอร์ต่อด้วยยาทดแทนหรือไม่"
+                    className="min-h-[68px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRequestCustomerDecision}
+                    disabled={sendingDecisionRequest}
+                    className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-50"
+                  >
+                    {sendingDecisionRequest ? "กำลังส่ง..." : "ส่งคำถามให้ลูกค้า (ยืนยันต่อออเดอร์?)"}
+                  </button>
+                  {order.pharmacistActionRequired && order.customerDecisionStatus === "PENDING" && (
+                    <p className="text-[11px] font-medium text-amber-600">ส่งคำถามแล้ว รอลูกค้าตอบกลับ</p>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={handleCancel}

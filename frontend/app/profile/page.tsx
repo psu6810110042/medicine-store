@@ -9,11 +9,13 @@ import {
   FileText,
   CheckCircle2,
   Truck,
+  Bell,
   Save,
   Edit2,
   X,
 } from 'lucide-react';
 import { Order, OrderItem } from '@/app/types/order';
+import { orderService } from '@/app/services/orderService';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type HealthDataState = {
@@ -70,11 +72,11 @@ export default function ProfilePage() {
 
   const initialTab = (() => {
     const tab = searchParams.get('tab');
-    if (tab === 'orders' || tab === 'health') return tab;
+    if (tab === 'orders' || tab === 'health' || tab === 'notifications') return tab;
     return 'personal';
   })();
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'health' | 'orders'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'personal' | 'health' | 'orders' | 'notifications'>(initialTab);
 
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [personalForm, setPersonalForm] = useState({
@@ -106,6 +108,7 @@ export default function ProfilePage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [respondingOrderId, setRespondingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -134,7 +137,7 @@ export default function ProfilePage() {
   }, [checkAuth]);
 
   useEffect(() => {
-    if (activeTab === 'orders' && user) {
+    if ((activeTab === 'orders' || activeTab === 'notifications') && user) {
       fetchOrders();
     }
   }, [activeTab, user]);
@@ -142,23 +145,32 @@ export default function ProfilePage() {
   const fetchOrders = async () => {
     setIsLoadingOrders(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const res = await fetch(`${API_URL}/orders/my`, {
-        credentials: 'include',
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const sorted = data.sort(
-          (a: Order, b: Order) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setOrders(sorted);
-      }
+      const data = await orderService.getMyOrders();
+      const sorted = data.sort(
+        (a: Order, b: Order) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setOrders(sorted);
     } catch (e) {
       console.error('Failed to fetch orders', e);
     } finally {
       setIsLoadingOrders(false);
+    }
+  };
+
+  const handleRespondOutOfStockDecision = async (
+    orderId: string,
+    decision: 'ACCEPT' | 'DECLINE'
+  ) => {
+    setRespondingOrderId(orderId);
+    try {
+      const updated = await orderService.respondOutOfStockDecision(orderId, decision);
+      setOrders((prev) => prev.map((order) => (order.id === orderId ? updated : order)));
+    } catch (e) {
+      console.error('Failed to respond out of stock decision', e);
+      alert('ไม่สามารถส่งคำตอบได้ โปรดลองอีกครั้ง');
+    } finally {
+      setRespondingOrderId(null);
     }
   };
 
@@ -415,6 +427,10 @@ export default function ProfilePage() {
     }));
   };
 
+  const pendingNotificationOrders = orders.filter(
+    (order) => order.pharmacistActionRequired && order.customerDecisionStatus === 'PENDING'
+  );
+
   return (
     <div className="mx-auto flex h-[calc(100vh-80px)] min-h-[600px] w-full max-w-5xl flex-col px-4 py-4 md:py-6">
       <div className="flex-none rounded-3xl border bg-gradient-to-r from-sky-50 to-emerald-50 p-6">
@@ -437,7 +453,7 @@ export default function ProfilePage() {
           <Tabs
             value={activeTab}
             onValueChange={(value) =>
-              setActiveTab(value as 'personal' | 'health' | 'orders')
+              setActiveTab(value as 'personal' | 'health' | 'orders' | 'notifications')
             }
           >
             <TabsList className="flex h-auto flex-wrap gap-2 bg-transparent p-0">
@@ -460,6 +476,21 @@ export default function ProfilePage() {
                 className="rounded-full border px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-slate-900 data-[state=active]:text-white"
               >
                 ประวัติคำสั่งซื้อ
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="notifications"
+                className="rounded-full border px-5 py-2.5 text-sm font-semibold data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  การแจ้งเตือน
+                  {pendingNotificationOrders.length > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                      {pendingNotificationOrders.length}
+                    </span>
+                  )}
+                </span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1073,6 +1104,54 @@ export default function ProfilePage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </SectionCard>
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="max-w-4xl">
+            <SectionCard title="การแจ้งเตือนจากเภสัชกร">
+              {isLoadingOrders ? (
+                <div className="py-8 text-center text-sm text-slate-500">กำลังโหลดการแจ้งเตือน...</div>
+              ) : pendingNotificationOrders.length === 0 ? (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+                  ตอนนี้ยังไม่มีการแจ้งเตือนที่ต้องตอบกลับ
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingNotificationOrders.map((order) => (
+                    <div key={order.id} className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">
+                            คำสั่งซื้อ #{order.id.slice(0, 8).toUpperCase()}
+                          </p>
+                          <p className="mt-1 text-sm text-amber-900">
+                            {order.pharmacistNotes || 'มียาบางรายการหมด ต้องการดำเนินการต่อหรือไม่'}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            onClick={() => handleRespondOutOfStockDecision(order.id, 'ACCEPT')}
+                            disabled={respondingOrderId === order.id}
+                          >
+                            ใช่
+                          </button>
+                          <button
+                            className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                            onClick={() => handleRespondOutOfStockDecision(order.id, 'DECLINE')}
+                            disabled={respondingOrderId === order.id}
+                          >
+                            ไม่
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </SectionCard>

@@ -267,6 +267,7 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [approvedPrescriptionOrders, setApprovedPrescriptionOrders] = useState<Order[]>([]);
+  const [pendingDecisionOrders, setPendingDecisionOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -331,6 +332,34 @@ function StoreContent() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || user.role !== 'customer') {
+      setPendingDecisionOrders([]);
+      return;
+    }
+
+    let mounted = true;
+
+    const fetchPendingDecisions = async () => {
+      try {
+        const myOrders = await orderService.getMyOrders();
+        const pending = myOrders.filter(
+          (o) => o.pharmacistActionRequired && o.customerDecisionStatus === 'PENDING'
+        );
+        if (mounted) setPendingDecisionOrders(pending);
+      } catch {
+        // silent
+      }
+    };
+
+    fetchPendingDecisions();
+    const intervalId = window.setInterval(fetchPendingDecisions, 30000);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [user]);
+
   const getIconComponent = (iconName: string) => {
     type IconMap = Record<string, React.ElementType>;
     const icons: IconMap = {
@@ -389,7 +418,7 @@ function StoreContent() {
         </header>
 
         {approvedPrescriptionOrders.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-4">
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 md:p-5 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -413,6 +442,27 @@ function StoreContent() {
                     ดูประวัติคำสั่งซื้อ
                   </Button>
                 </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {pendingDecisionOrders.length > 0 && (
+          <section className="mb-8">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 md:p-5 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-amber-800">⚠️ เภสัชกรต้องการคำตอบจากคุณ</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    มี {pendingDecisionOrders.length} คำสั่งซื้อที่เภสัชกรแจ้งว่ายาหมด กรุณาตอบกลับเพื่อดำเนินการต่อ
+                  </p>
+                </div>
+                <Button
+                  onClick={() => router.push('/profile?tab=notifications')}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  ดูการแจ้งเตือน
+                </Button>
               </div>
             </div>
           </section>

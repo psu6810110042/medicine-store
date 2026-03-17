@@ -20,6 +20,7 @@ export interface UpdateOrderStatusDto {
 
 type PaymentMethod = 'BANK_TRANSFER' | 'PROMPTPAY';
 type PaymentVerifyStatus = 'APPROVED' | 'REJECTED';
+type OutOfStockDecision = 'ACCEPT' | 'DECLINE';
 
 function isPrescriptionOnlyOrder(data: {
   items?: { productId: string; quantity: number }[];
@@ -127,6 +128,30 @@ export const orderService = {
     const updated = await fetchApi<Order>(`/orders/${id}/verify-payment`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+
+    return normalizeOrder(updated);
+  },
+
+  requestOutOfStockDecision: async (
+    id: string,
+    message: string,
+  ): Promise<Order> => {
+    const updated = await fetchApi<Order>(`/orders/${id}/request-decision`, {
+      method: 'PATCH',
+      body: JSON.stringify({ message }),
+    });
+
+    return normalizeOrder(updated);
+  },
+
+  respondOutOfStockDecision: async (
+    id: string,
+    decision: OutOfStockDecision,
+  ): Promise<Order> => {
+    const updated = await fetchApi<Order>(`/orders/${id}/respond-decision`, {
+      method: 'PATCH',
+      body: JSON.stringify({ decision }),
     });
 
     return normalizeOrder(updated);

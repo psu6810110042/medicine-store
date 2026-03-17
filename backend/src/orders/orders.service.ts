@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Order, OrderStatus, PaymentStatus } from './entities/order.entity';
+import {
+  CustomerDecisionStatus,
+  Order,
+  OrderStatus,
+  PaymentStatus,
+} from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Product } from '../products/entities/products.entity';
 import { Cart } from '../cart/entities/cart.entity';
@@ -14,6 +19,11 @@ import { CartItem } from '../cart/entities/cart-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AddItemsToOrderDto } from './dto/add-items-to-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import {
+  OutOfStockDecision,
+  RespondOutOfStockDecisionDto,
+} from './dto/respond-out-of-stock-decision.dto';
+import { RequestOutOfStockDecisionDto } from './dto/request-out-of-stock-decision.dto';
 
 @Injectable()
 export class OrdersService {
@@ -297,7 +307,12 @@ export class OrdersService {
           .execute();
       }
 
-      await queryRunner.manager.update(Order, id, { totalAmount });
+      await queryRunner.manager.update(Order, id, {
+        totalAmount,
+        pharmacistActionRequired: false,
+        customerDecisionStatus: null,
+        customerRespondedAt: null,
+      });
 
       await queryRunner.commitTransaction();
     } catch (err) {
@@ -308,6 +323,73 @@ export class OrdersService {
     }
 
     return this.findOne(id);
+  }
+
+  async requestOutOfStockDecision(
+    orderId: string,
+    dto: RequestOutOfStockDecisionDto,
+  ): Promise<Order> {
+    const order = await this.findOne(orderId);
+
+    if (order.status !== OrderStatus.PRESCRIPTION) {
+      throw new BadRequestException('สามารถส่งข้อความแจ้งยาหมดได้เฉพาะออเดอร์ที่รอตรวจใบสั่งยา');
+    }
+
+    order.pharmacistNotes = dto.message.trim();
+    order.pharmacistActionRequired = true;
+    order.customerDecisionStatus = CustomerDecisionStatus.PENDING;
+    order.pharmacistRequestedAt = new Date();
+    order.customerRespondedAt = null;
+
+    await this.orderRepository.save(order);
+    return this.findOne(orderId);
+  }
+
+  async respondOutOfStockDecision(
+    orderId: string,
+    userId: string,
+    dto: RespondOutOfStockDecisionDto,
+  ): Promise<Order> {
+    const order = await this.findOne(orderId);
+
+    if (order.user?.id !== userId) {
+      throw new ForbiddenException('This order does not belong to you');
+    }
+
+    if (!order.pharmacistActionRequired || order.customerDecisionStatus !== CustomerDecisionStatus.PENDING) {
+      throw new BadRequestException('ไม่มีคำขอตอบกลับจากเภสัชกรสำหรับออเดอร์นี้');
+    }
+
+    order.customerRespondedAt = new Date();
+    order.pharmacistActionRequired = false;
+
+    if (dto.decision === OutOfStockDecision.ACCEPT) {
+      order.customerDecisionStatus = CustomerDecisionStatus.ACCEPTED;
+      order.status = OrderStatus.PRESCRIPTION;
+    } else {
+      order.customerDecisionStatus = CustomerDecisionStatus.DECLINED;
+      order.status = OrderStatus.CANCELLED;
+
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        await this.restoreStockForOrderItems(queryRunner, order.items);
+        await queryRunner.manager.save(Order, order);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+
+      return this.findOne(orderId);
+    }
+
+    await this.orderRepository.save(order);
+    return this.findOne(orderId);
   }
 
   async submitPayment(

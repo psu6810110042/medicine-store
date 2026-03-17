@@ -42,6 +42,10 @@ export interface Order {
     paymentNote?: string;
     paidAt?: string;
     pharmacistNotes?: string;
+    pharmacistActionRequired?: boolean;
+    customerDecisionStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+    pharmacistRequestedAt?: string;
+    customerRespondedAt?: string;
     user?: {
         id: string;
         email: string;
