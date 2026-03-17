@@ -27,6 +27,12 @@ export enum PaymentStatus {
     REJECTED = 'REJECTED',
 }
 
+export enum CustomerDecisionStatus {
+    PENDING = 'PENDING',
+    ACCEPTED = 'ACCEPTED',
+    DECLINED = 'DECLINED',
+}
+
 @Entity('orders')
 export class Order {
     @PrimaryGeneratedColumn('uuid')
@@ -80,6 +86,25 @@ export class Order {
 
     @Column({ type: 'text', nullable: true })
     paymentNote?: string;
+
+    @Column({ type: 'text', nullable: true })
+    pharmacistNotes?: string;
+
+    @Column({ default: false })
+    pharmacistActionRequired: boolean;
+
+    @Column({
+        type: 'enum',
+        enum: CustomerDecisionStatus,
+        nullable: true,
+    })
+    customerDecisionStatus?: CustomerDecisionStatus | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    pharmacistRequestedAt?: Date | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    customerRespondedAt?: Date | null;
 
     @Column({ type: 'timestamp', nullable: true })
     paidAt?: Date;

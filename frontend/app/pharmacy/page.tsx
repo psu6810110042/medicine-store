@@ -90,9 +90,6 @@ const quickFilterLabel: Record<QuickFilter, string> = {
   highValue: "ยอดเกิน 500",
 };
 
-const HIDDEN_CANCELLED_KEY = "pharmacy_hidden_cancelled_order_ids";
-const HIDDEN_DELIVERED_KEY = "pharmacy_hidden_delivered_order_ids";
-
 function formatCurrencyShort(amount: number) {
   if (amount >= 1000000) {
     return `฿${(amount / 1000000).toFixed(2)}M`;
@@ -103,25 +100,24 @@ function formatCurrencyShort(amount: number) {
   return `฿${amount.toLocaleString()}`;
 }
 
-function readHiddenIds(key: string): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
-  } catch {
-    return [];
+function isPrescriptionLikeOrder(order: Order) {
+  const hasPrescription = Boolean(order.prescriptionImage);
+  const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+  return hasPrescription && itemCount === 0;
+}
+
+function normalizeOrder(order: Order): Order {
+  if (order.status === OrderStatus.PENDING_REVIEW && isPrescriptionLikeOrder(order)) {
+    return {
+      ...order,
+      status: OrderStatus.PRESCRIPTION,
+    };
   }
+  return order;
 }
 
-function writeHiddenIds(key: string, ids: string[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(ids));
-}
-
-function mergeUniqueIds(current: string[], next: string[]) {
-  return Array.from(new Set([...current, ...next]));
+function normalizeOrders(data: Order[]) {
+  return data.map(normalizeOrder);
 }
 
 export default function PharmacyPage() {
@@ -139,9 +135,6 @@ export default function PharmacyPage() {
   const [clearingCancelled, setClearingCancelled] = useState(false);
   const [clearingDelivered, setClearingDelivered] = useState(false);
 
-  const [hiddenCancelledIds, setHiddenCancelledIds] = useState<string[]>([]);
-  const [hiddenDeliveredIds, setHiddenDeliveredIds] = useState<string[]>([]);
-
   const [statModal, setStatModal] = useState<{
     title: string;
     value: string | number;
@@ -157,11 +150,6 @@ export default function PharmacyPage() {
     imageUrl: "",
   });
 
-  useEffect(() => {
-    setHiddenCancelledIds(readHiddenIds(HIDDEN_CANCELLED_KEY));
-    setHiddenDeliveredIds(readHiddenIds(HIDDEN_DELIVERED_KEY));
-  }, []);
-
   const fetchAllOrders = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -171,31 +159,8 @@ export default function PharmacyPage() {
         productService.getProducts(),
       ]);
 
-      const currentHiddenCancelledIds = readHiddenIds(HIDDEN_CANCELLED_KEY);
-      const currentHiddenDeliveredIds = readHiddenIds(HIDDEN_DELIVERED_KEY);
-
-      setHiddenCancelledIds(currentHiddenCancelledIds);
-      setHiddenDeliveredIds(currentHiddenDeliveredIds);
-
-      const visibleOrders = ordersData.filter((order) => {
-        if (
-          order.status === OrderStatus.CANCELLED &&
-          currentHiddenCancelledIds.includes(order.id)
-        ) {
-          return false;
-        }
-
-        if (
-          order.status === OrderStatus.DONE &&
-          currentHiddenDeliveredIds.includes(order.id)
-        ) {
-          return false;
-        }
-
-        return true;
-      });
-
-      const sortedData = visibleOrders.sort(
+      const normalizedOrders = normalizeOrders(ordersData);
+      const sortedData = [...normalizedOrders].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrders(sortedData);
@@ -222,7 +187,7 @@ export default function PharmacyPage() {
   }, [fetchAllOrders]);
 
   const openDetail = (order: Order) => {
-    setSelected(order);
+    setSelected(normalizeOrder(order));
     setDetailOpen(true);
   };
 
@@ -255,9 +220,29 @@ export default function PharmacyPage() {
   const updateStatus = async (id: string, next: OrderStatus) => {
     try {
       const updated = await orderService.updateOrderStatus(id, next);
+      const normalizedUpdated = normalizeOrder(updated);
+
       setOrders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, status: updated.status } : o))
+        prev.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                ...normalizedUpdated,
+                status: normalizedUpdated.status,
+              }
+            : o
+        )
       );
+
+      setSelected((prev) => {
+        if (!prev || prev.id !== id) return prev;
+        return {
+          ...prev,
+          ...normalizedUpdated,
+          status: normalizedUpdated.status,
+        };
+      });
+
       toast.success("อัปเดตสถานะสำเร็จ");
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -293,18 +278,19 @@ export default function PharmacyPage() {
     try {
       setClearingCancelled(true);
 
-      const idsToHide = cancelledOrders.map((o) => o.id);
-      const mergedIds = mergeUniqueIds(hiddenCancelledIds, idsToHide);
+      const idsToDelete = cancelledOrders.map((o) => o.id);
 
-      writeHiddenIds(HIDDEN_CANCELLED_KEY, mergedIds);
-      setHiddenCancelledIds(mergedIds);
+      await orderService.deleteOrders(idsToDelete);
 
-      setOrders((prev) => prev.filter((o) => o.status !== OrderStatus.CANCELLED));
+      if (selected && idsToDelete.includes(selected.id)) {
+        closeDetail();
+      }
 
-      toast.success(`ล้างคำสั่งซื้อที่ยกเลิกแล้ว ${cancelledOrders.length} รายการเรียบร้อย`);
+      await fetchAllOrders();
+      toast.success(`ล้างคำสั่งซื้อที่ยกเลิกแล้ว ${idsToDelete.length} รายการเรียบร้อย`);
     } catch (error) {
       console.error("Failed to clear cancelled orders:", error);
-      toast.error("ไม่สามารถล้างคำสั่งซื้อที่ยกเลิกแล้วได้");
+      toast.error("ล้างคำสั่งซื้อไม่สำเร็จ เพราะลบจากเซิร์ฟเวอร์ไม่ได้");
     } finally {
       setClearingCancelled(false);
     }
@@ -326,18 +312,19 @@ export default function PharmacyPage() {
     try {
       setClearingDelivered(true);
 
-      const idsToHide = deliveredOrders.map((o) => o.id);
-      const mergedIds = mergeUniqueIds(hiddenDeliveredIds, idsToHide);
+      const idsToDelete = deliveredOrders.map((o) => o.id);
 
-      writeHiddenIds(HIDDEN_DELIVERED_KEY, mergedIds);
-      setHiddenDeliveredIds(mergedIds);
+      await orderService.deleteOrders(idsToDelete);
 
-      setOrders((prev) => prev.filter((o) => o.status !== OrderStatus.DONE));
+      if (selected && idsToDelete.includes(selected.id)) {
+        closeDetail();
+      }
 
-      toast.success(`ล้างคำสั่งซื้อที่ส่งมอบแล้ว ${deliveredOrders.length} รายการเรียบร้อย`);
+      await fetchAllOrders();
+      toast.success(`ล้างคำสั่งซื้อที่ส่งมอบแล้ว ${idsToDelete.length} รายการเรียบร้อย`);
     } catch (error) {
       console.error("Failed to clear delivered orders:", error);
-      toast.error("ไม่สามารถล้างคำสั่งซื้อที่ส่งมอบแล้วได้");
+      toast.error("ล้างคำสั่งซื้อที่ส่งมอบแล้วไม่สำเร็จ");
     } finally {
       setClearingDelivered(false);
     }
@@ -351,16 +338,17 @@ export default function PharmacyPage() {
     const keyword = searchTerm.trim().toLowerCase();
 
     const matched = orders.filter((o) => {
-      const statusMatched = o.status === active;
+      const normalized = normalizeOrder(o);
+      const statusMatched = normalized.status === active;
       if (!statusMatched) return false;
 
-      if (quickFilter === "highValue" && Number(o.totalAmount || 0) <= 500) return false;
+      if (quickFilter === "highValue" && Number(normalized.totalAmount || 0) <= 500) return false;
 
       if (!keyword) return true;
 
-      const orderIdMatched = String(o.id).toLowerCase().includes(keyword);
-      const userMatched = (o.user?.email ?? "").toLowerCase().includes(keyword);
-      const itemMatched = (o.items ?? []).some((item) =>
+      const orderIdMatched = String(normalized.id).toLowerCase().includes(keyword);
+      const userMatched = (normalized.user?.email ?? "").toLowerCase().includes(keyword);
+      const itemMatched = (normalized.items ?? []).some((item) =>
         (item.product?.name ?? "").toLowerCase().includes(keyword)
       );
 
@@ -387,12 +375,14 @@ export default function PharmacyPage() {
   }, [orders, active, searchTerm, sortBy, quickFilter]);
 
   const summary = useMemo(() => {
-    const pending = orders.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
-    const prescription = orders.filter((o) => o.status === OrderStatus.PRESCRIPTION).length;
-    const processing = orders.filter((o) => o.status === OrderStatus.PROCESSING).length;
-    const shipped = orders.filter((o) => o.status === OrderStatus.STOCK).length;
-    const delivered = orders.filter((o) => o.status === OrderStatus.DONE).length;
-    const cancelled = orders.filter((o) => o.status === OrderStatus.CANCELLED).length;
+    const normalized = normalizeOrders(orders);
+
+    const pending = normalized.filter((o) => o.status === OrderStatus.PENDING_REVIEW).length;
+    const prescription = normalized.filter((o) => o.status === OrderStatus.PRESCRIPTION).length;
+    const processing = normalized.filter((o) => o.status === OrderStatus.PROCESSING).length;
+    const shipped = normalized.filter((o) => o.status === OrderStatus.STOCK).length;
+    const delivered = normalized.filter((o) => o.status === OrderStatus.DONE).length;
+    const cancelled = normalized.filter((o) => o.status === OrderStatus.CANCELLED).length;
 
     return {
       pending,
@@ -401,8 +391,8 @@ export default function PharmacyPage() {
       shipped,
       delivered,
       cancelled,
-      total: orders.length,
-      sales: orders
+      total: normalized.length,
+      sales: normalized
         .filter((o) => o.status !== OrderStatus.CANCELLED)
         .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
       stockCount,
@@ -775,9 +765,12 @@ export default function PharmacyPage() {
                       {filtered.map((order) => (
                         <PrescriptionReviewCard
                           key={order.id}
-                          order={order}
+                          order={normalizeOrder(order)}
                           onOrderUpdated={(updated) => {
-                            setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+                            const normalizedUpdated = normalizeOrder(updated);
+                            setOrders((prev) =>
+                              prev.map((o) => (o.id === normalizedUpdated.id ? normalizedUpdated : o))
+                            );
                           }}
                           onStatusChange={async (id, status) => {
                             await updateStatus(id, status);
@@ -796,7 +789,7 @@ export default function PharmacyPage() {
                   filtered.map((order) => (
                     <OrderCard
                       key={order.id}
-                      order={order}
+                      order={normalizeOrder(order)}
                       onDetail={() => openDetail(order)}
                       onReview={() => openDetail(order)}
                       onApprove={() => {
@@ -964,8 +957,7 @@ function StatCard({
   onView?: () => void;
 }) {
   const displayValue = String(value);
-  const shortValue =
-    displayValue.length > 6 ? `${displayValue.slice(0, 3)}...` : displayValue;
+  const shortValue = displayValue.length > 6 ? `${displayValue.slice(0, 3)}...` : displayValue;
 
   return (
     <Card className="overflow-hidden rounded-3xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
@@ -1437,14 +1429,18 @@ function PrescriptionReviewCard({
   const [showDropdown, setShowDropdown] = useState(false);
 
   const [draftItems, setDraftItems] = useState<PrescriptionDraftItem[]>(
-    (order.items ?? []).map((it: OrderItem) => ({
-      product: it.product!,
-      quantity: it.quantity,
-    }))
+    (order.items ?? [])
+      .filter((it: OrderItem) => Boolean(it.product))
+      .map((it: OrderItem) => ({
+        product: it.product!,
+        quantity: it.quantity,
+      }))
   );
 
   const [imageOpen, setImageOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [decisionMessage, setDecisionMessage] = useState(order.pharmacistNotes ?? "");
+  const [sendingDecisionRequest, setSendingDecisionRequest] = useState(false);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1542,7 +1538,13 @@ function PrescriptionReviewCard({
         order.id,
         draftItems.map((i) => ({ productId: i.product.id, quantity: i.quantity }))
       );
-      onOrderUpdated(updated);
+
+      const normalizedUpdated =
+        updated.status === OrderStatus.PENDING_REVIEW && updated.prescriptionImage
+          ? { ...updated, status: OrderStatus.PRESCRIPTION }
+          : updated;
+
+      onOrderUpdated(normalizedUpdated);
       await onStatusChange(order.id, OrderStatus.PROCESSING);
       toast.success("อนุมัติและส่งคำสั่งซื้อเรียบร้อย");
     } catch (err: unknown) {
@@ -1555,6 +1557,26 @@ function PrescriptionReviewCard({
 
   const handleCancel = async () => {
     await onStatusChange(order.id, OrderStatus.CANCELLED);
+  };
+
+  const handleRequestCustomerDecision = async () => {
+    const message = decisionMessage.trim();
+    if (!message) {
+      toast.error("กรุณากรอกข้อความแจ้งลูกค้า");
+      return;
+    }
+
+    setSendingDecisionRequest(true);
+    try {
+      const updated = await orderService.requestOutOfStockDecision(order.id, message);
+      onOrderUpdated(updated);
+      toast.success("ส่งข้อความถามลูกค้าเรียบร้อย");
+    } catch (err: unknown) {
+      const messageText = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
+      toast.error(`ส่งข้อความไม่สำเร็จ: ${messageText}`);
+    } finally {
+      setSendingDecisionRequest(false);
+    }
   };
 
   const prescriptionUrl = order.prescriptionImage ?? null;
@@ -1735,6 +1757,27 @@ function PrescriptionReviewCard({
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t pt-2">
+                <div className="mr-auto w-full max-w-md space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-600">กรณียาหมด: ส่งข้อความถามลูกค้า</p>
+                  <textarea
+                    value={decisionMessage}
+                    onChange={(e) => setDecisionMessage(e.target.value)}
+                    placeholder="เช่น ยา A หมด ต้องการให้จัดออเดอร์ต่อด้วยยาทดแทนหรือไม่"
+                    className="min-h-[68px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRequestCustomerDecision}
+                    disabled={sendingDecisionRequest}
+                    className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-50"
+                  >
+                    {sendingDecisionRequest ? "กำลังส่ง..." : "ส่งคำถามให้ลูกค้า (ยืนยันต่อออเดอร์?)"}
+                  </button>
+                  {order.pharmacistActionRequired && order.customerDecisionStatus === "PENDING" && (
+                    <p className="text-[11px] font-medium text-amber-600">ส่งคำถามแล้ว รอลูกค้าตอบกลับ</p>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={handleCancel}
