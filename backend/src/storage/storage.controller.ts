@@ -62,8 +62,8 @@ export class StorageController {
         return { url };
     }
 
-    @Get('view/:key')
-    async viewImage(@Param('key') key: string, @Req() req: Request, @Res() res: Response) {
+    @Get('view/*')
+    async viewImage(@Param('0') key: string, @Req() req: Request, @Res() res: Response) {
         if (!key) {
             throw new BadRequestException('Image key is required');
         }
