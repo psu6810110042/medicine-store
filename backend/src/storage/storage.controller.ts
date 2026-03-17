@@ -64,7 +64,10 @@ export class StorageController {
 
     @Get('view/*')
     async viewImage(@Req() req: Request, @Res() res: Response) {
-        const key = req.params[0];
+        // Extract the key manually from the URL since Nginx decoding breaks exact matching and params across adapters
+        const urlToParse = req.originalUrl || req.url;
+        const keyMatch = urlToParse ? urlToParse.split('/view/')[1] : null;
+        const key = keyMatch ? keyMatch.split('?')[0] : null;
         
         if (!key) {
             throw new BadRequestException('Image key is required');
