@@ -287,18 +287,51 @@ export default function ProfilePage() {
     }
   };
 
+  const resolveEffectiveStatus = (
+    status: string,
+    orderNeedsPharmacistFlow: boolean,
+    hasPrescriptionImage: boolean,
+    paymentStatus?: Order['paymentStatus']
+  ) => {
+    const normalizedStatus = status.toUpperCase();
+
+    if (
+      orderNeedsPharmacistFlow &&
+      hasPrescriptionImage &&
+      ['PRESCRIPTION', 'PENDING_REVIEW', 'UNPAID'].includes(normalizedStatus) &&
+      (paymentStatus === 'UNPAID' || !paymentStatus)
+    ) {
+      return 'PRESCRIPTION';
+    }
+
+    if (!orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION') {
+      return 'PENDING_REVIEW';
+    }
+
+    if (['PENDING_REVIEW', 'UNPAID'].includes(normalizedStatus)) {
+      return 'PENDING_REVIEW';
+    }
+
+    if (['STOCK', 'PROCESSING'].includes(normalizedStatus)) {
+      return 'PROCESSING';
+    }
+
+    return normalizedStatus;
+  };
+
   const getStatusBadge = (
     status: string,
     orderNeedsPharmacistFlow: boolean,
-    useReviewPendingLabel: boolean
+    useReviewPendingLabel: boolean,
+    hasPrescriptionImage: boolean,
+    paymentStatus?: Order['paymentStatus']
   ) => {
-    const normalizedStatus = status.toUpperCase();
-    const effectiveStatus =
-      !orderNeedsPharmacistFlow && normalizedStatus === 'PRESCRIPTION'
-        ? 'PENDING_REVIEW'
-        : normalizedStatus === 'STOCK'
-        ? 'PROCESSING'
-        : normalizedStatus;
+    const effectiveStatus = resolveEffectiveStatus(
+      status,
+      orderNeedsPharmacistFlow,
+      hasPrescriptionImage,
+      paymentStatus
+    );
 
     const variants: { [key: string]: string } = {
       PENDING_REVIEW: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -335,23 +368,22 @@ export default function ProfilePage() {
   const getOrderTrackingSteps = (
     currentStatus: string,
     orderNeedsPharmacistFlow: boolean,
-    useReviewPendingLabel: boolean
+    useReviewPendingLabel: boolean,
+    hasPrescriptionImage: boolean,
+    paymentStatus?: Order['paymentStatus']
   ) => {
-    const normalizedStatus = currentStatus.toUpperCase();
     const statusOrder = orderNeedsPharmacistFlow
       ? ['PRESCRIPTION', 'PENDING_REVIEW', 'PROCESSING', 'DONE']
       : ['PENDING_REVIEW', 'PROCESSING', 'DONE'];
 
-    // ถ้ายังไม่ชำระเงิน (PENDING_REVIEW หรือ UNPAID) ให้หยุดที่ขั้นตอนรอชำระเงิน
-    let effectiveStatus = normalizedStatus;
-    // ถ้ายังไม่ชำระเงิน (PENDING_REVIEW หรือ UNPAID) ให้หยุดที่ขั้นตอนรอชำระเงิน
-    if (["PENDING_REVIEW", "UNPAID"].includes(normalizedStatus)) {
-      effectiveStatus = "PENDING_REVIEW";
-    } else if (!orderNeedsPharmacistFlow && normalizedStatus === "PRESCRIPTION") {
-      effectiveStatus = "PENDING_REVIEW";
-    } else if (["STOCK", "PROCESSING"].includes(normalizedStatus)) {
-      effectiveStatus = "PROCESSING";
-    }
+    const effectiveStatus = resolveEffectiveStatus(
+      currentStatus,
+      orderNeedsPharmacistFlow,
+      hasPrescriptionImage,
+      paymentStatus
+    );
+
+    const normalizedStatus = currentStatus.toUpperCase();
 
     const currentIndex = statusOrder.indexOf(effectiveStatus);
 
@@ -841,12 +873,16 @@ export default function ProfilePage() {
               ) : (
                 <div className="mt-4 space-y-6">
                   {orders.map((order) => {
-                    const orderNeedsPharmacistFlow = isMedicineOrMedicalDeviceOrder(order);
+                    const hasPrescriptionImage = Boolean(order.prescriptionImage);
+                    const orderNeedsPharmacistFlow =
+                      hasPrescriptionImage || isMedicineOrMedicalDeviceOrder(order);
                     const useReviewPendingLabel = isNonControlledOrder(order);
                     const trackingSteps = getOrderTrackingSteps(
                       order.status,
                       orderNeedsPharmacistFlow,
-                      useReviewPendingLabel
+                      useReviewPendingLabel,
+                      hasPrescriptionImage,
+                      order.paymentStatus
                     );
 
                     return (
@@ -863,7 +899,9 @@ export default function ProfilePage() {
                               {getStatusBadge(
                                 order.status,
                                 orderNeedsPharmacistFlow,
-                                useReviewPendingLabel
+                                useReviewPendingLabel,
+                                hasPrescriptionImage,
+                                order.paymentStatus
                               )}
                             </div>
                             <p className="mt-1 text-sm text-slate-500">
