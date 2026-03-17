@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         hostname: '192.168.65.133',
       },
       {
+        protocol: 'http',
+        hostname: '192.168.65.129',
+      },
+      {
         protocol: 'https',
         hostname: '**',
       }
@@ -19,7 +23,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ["localhost:3000", "192.168.65.133:3000", "localhost:3001", "192.168.65.133:3001", "localhost:3002", "192.168.65.133:3002"]
+      allowedOrigins: [
+        "localhost:3000", "192.168.65.133:3000", "localhost:3001", "192.168.65.133:3001", "localhost:3002", "192.168.65.133:3002",
+        "192.168.65.129:3000", "192.168.65.129:3001", "192.168.65.129:3002"
+      ]
     }
   },
 };

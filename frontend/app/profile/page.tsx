@@ -65,7 +65,9 @@ function isNonControlledOrder(order: Order) {
   return !items.some((item) => item.product?.isControlled);
 }
 
-export default function ProfilePage() {
+import { Suspense } from 'react';
+
+function ProfileInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, checkAuth, logout, updateProfile } = useAuth();
@@ -1162,12 +1164,27 @@ export default function ProfilePage() {
   );
 }
 
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-[calc(100vh-80px)] min-h-[600px] w-full max-w-5xl items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"></div>
+          <p className="mt-4 text-sm text-slate-500">กำลังโหลดข้อมูลโปรไฟล์...</p>
+        </div>
+      </div>
+    }>
+      <ProfileInner />
+    </Suspense>
+  );
+}
+
 function SectionCard({
   title,
   children,
   action,
 }: {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
