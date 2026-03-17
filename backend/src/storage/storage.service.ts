@@ -93,8 +93,11 @@ export class StorageService implements OnModuleInit {
                 }),
             );
 
-            // Return a local proxy URL instead of direct S3 URL to route through the permission gateway
-            const backendUrl = this.configService.get<string>('BACKEND_URL') || 'http://localhost:3001';
+            // Use NEXT_PUBLIC_API_URL since that's what the frontend uses to reach us.
+            const backendUrl = this.configService.get<string>('NEXT_PUBLIC_API_URL') 
+                || this.configService.get<string>('BACKEND_URL') 
+                || 'http://localhost:3001';
+            
             return `${backendUrl}/upload/view/${encodeURIComponent(key)}`;
         } catch (error) {
             this.logger.error(`Failed to upload file "${filename}":`, error);
