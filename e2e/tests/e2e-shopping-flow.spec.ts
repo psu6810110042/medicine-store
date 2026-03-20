@@ -69,13 +69,12 @@ test.describe('E2E Shopping Flow', () => {
 
     await test.step('5. Upload Slip & Confirm Payment', async () => {
           
-          const sampleSlipPath = '../../frontend/public/prescriptions/sample-prescription.jpg';
+      const sampleSlipPath = '../../frontend/public/prescriptions/sample-prescription.jpg';
           
-          await page.locator('input[type="file"]').setInputFiles(sampleSlipPath);
+      await page.locator('input[type="file"]').setInputFiles(sampleSlipPath);
     
-          const confirmPaymentButton = page.getByRole('button', { name: /แจ้งชำระเงิน|ยืนยัน/ });
-          await confirmPaymentButton.click();
-        });
-
+      const confirmPaymentButton = page.getByRole('button', { name: /แจ้งชำระเงิน|ยืนยัน/ });
+      await confirmPaymentButton.click();
+    }); 
   });
 });
